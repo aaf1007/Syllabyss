@@ -25,5 +25,7 @@ CI on PRs and main pushes, DB tests on a throwaway TimescaleDB, and CD to Render
 - Two environments so routine deploys need no click: `production-db` (main only) for status + Render key, `production` (reviewers) for migrate.
 - `deploy.yml` only triggers via workflow_run once it's on the default branch.
 
+- First PR CI runs found: tzdata 2026c (Node 22.23) keeps Vancouver on UTC−7 from March 2026 (tests moved to past DST dates); `seed-courses.mts` read `python-basics.sonar.json` as a Course (now skipped); Daily DB test needs a seeded pool (CI seeds courses + daily). PR #2 checks green after that.
+
 ## Files touched
-- .github/workflows/ci.yml, .github/workflows/deploy.yml, package.json, docs/deploy.md, CLAUDE.md, this worklog
+- lib/daily/daily.test.ts, lib/social/days.test.ts, scripts/seed-courses.mts, .github/workflows/ci.yml, .github/workflows/deploy.yml, package.json, docs/deploy.md, CLAUDE.md, this worklog
