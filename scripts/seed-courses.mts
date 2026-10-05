@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seeds the public Courses (first: Python Basics) from db/seed/courses/*.json: the system
+// Seeds the public Courses (first: Python Basics) from db/seed/courses/*.json (not *.sonar.json, Sonar's Concept graph): the system
 // Player's Module per Course, each Topic's reading as a parsed Source Document, and one
 // public, ready Game per (Topic, Mode). Spec: docs/architecture/courses.md § Seed.
 // Needs Node 22.18+ (runs this .mts file directly with built-in type stripping).
@@ -31,7 +31,7 @@ const checkOnly = args.includes("--check");
 const named = args.filter((a) => !a.startsWith("--"));
 const files = named.length
   ? named.map((f) => path.resolve(f))
-  : (await readdir(dir).catch(() => [] as string[])).filter((f) => f.endsWith(".json")).sort().map((f) => path.join(dir, f));
+  : (await readdir(dir).catch(() => [] as string[])).filter((f) => f.endsWith(".json") && !f.endsWith(".sonar.json")).sort().map((f) => path.join(dir, f));
 if (files.length === 0) {
   console.error(`No course files in ${path.relative(root, dir)}`);
   process.exit(1);
