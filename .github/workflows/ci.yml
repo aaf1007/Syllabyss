@@ -69,3 +69,43 @@ jobs:
       # The Daily tests claim the next day's puzzle, which needs a non-empty pool (as on Tiger).
       - run: npm run db:seed:courses && npm run db:seed:daily
       - run: npm run test:db
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Render builds this Dockerfile; catch a broken image before merge, not at deploy.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  actionlint:
+    name: Lint workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # shellcheck is preinstalled on ubuntu-latest, so run: scripts are checked too.
+      - run: bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+      - run: ./actionlint -color
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Fails a PR that adds a dependency with a known high or critical vulnerability.
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+    permissions:
+      contents: read
+      pull-requests: write # the on-failure summary comment
+
