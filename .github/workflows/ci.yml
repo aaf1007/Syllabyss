@@ -1,0 +1,71 @@
+# CI: every PR and every push to main. deploy.yml runs after this passes on main.
+# Needs no secrets: the build inlines no Clerk key, and DB tests use a throwaway TimescaleDB.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  check:
+    name: Typecheck, lint, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # npm 11 matches the lockfile the team writes (npm 10 rejects it; same fix as the Dockerfile).
+      - run: npm install -g npm@11.6.2 && npm ci
+      - run: npm run typecheck # next typegen first: RouteContext/PageProps live in .next/types
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  db-test:
+    name: Migrations + DB tests (fresh TimescaleDB)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # -ha ships timescaledb_toolkit (percentile_agg in the Daily migration), like Tiger Cloud.
+      timescaledb:
+        image: timescale/timescaledb-ha:pg17
+        env:
+          POSTGRES_PASSWORD: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:ci@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install -g npm@11.6.2 && npm ci
+      # Tiger Cloud has the toolkit preinstalled, so no migration creates it.
+      - run: docker exec ${{ job.services.timescaledb.id }} psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit"
+      - run: npm run db:migrate
+      - run: npm run db:migrate -- --status
+      # The Daily tests claim the next day's puzzle, which needs a non-empty pool (as on Tiger).
+      - run: npm run db:seed:courses && npm run db:seed:daily
+      - run: npm run test:db

@@ -1,0 +1,125 @@
+# CD to Render. Runs after CI passes on main (or by hand for main's HEAD):
+#   1. plan     – lists pending production migrations (no approval needed)
+#   2. migrate  – only if any are pending; waits for approval on the `production` environment
+#   3. deploy   – asks Render to deploy exactly the commit CI tested, waits until it's live
+#   4. smoke    – checks a few pages on the live site
+# Render's own Auto-Deploy must be Off, or it deploys before migrations run.
+# Setup (secrets, environments, Render settings): docs/deploy.md § 7.
+
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  plan:
+    name: Pending migrations
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment: production-db # holds DATABASE_URL and RENDER_API_KEY; main only, no reviewers
+    outputs:
+      pending: ${{ steps.status.outputs.pending }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install -g npm@11.6.2 && npm ci
+      - id: status
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npm run --silent db:migrate -- --status | tee status.txt
+          pending=$(grep -c '^pending' status.txt || true)
+          echo "pending=$pending" >> "$GITHUB_OUTPUT"
+          echo "### $pending pending migration(s)" >> "$GITHUB_STEP_SUMMARY"
+          grep '^pending' status.txt >> "$GITHUB_STEP_SUMMARY" || true
+
+  migrate:
+    name: Migrate production (approval)
+    needs: plan
+    if: needs.plan.outputs.pending != '0'
+    runs-on: ubuntu-latest
+    environment: production # required reviewers; holds DATABASE_URL
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install -g npm@11.6.2 && npm ci
+      - env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run db:migrate
+
+  deploy:
+    name: Deploy to Render
+    needs: [plan, migrate]
+    if: always() && needs.plan.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: production-db
+    timeout-minutes: 30
+    env:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ vars.RENDER_SERVICE_ID }}
+    steps:
+      - name: Trigger deploy of ${{ env.SHA }}
+        run: |
+          id=$(curl -fsS -X POST "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
+            -H "Authorization: Bearer $RENDER_API_KEY" -H "Content-Type: application/json" \
+            -d "{\"commitId\": \"$SHA\"}" | jq -r .id)
+          echo "Render deploy $id"
+          echo "DEPLOY_ID=$id" >> "$GITHUB_ENV"
+      - name: Wait until live
+        run: |
+          while :; do
+            status=$(curl -fsS "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys/$DEPLOY_ID" \
+              -H "Authorization: Bearer $RENDER_API_KEY" | jq -r .status)
+            echo "$(date +%T) $status"
+            case "$status" in
+              live) exit 0 ;;
+              build_failed|update_failed|pre_deploy_failed|canceled|deactivated) exit 1 ;;
+            esac
+            sleep 15
+          done
+
+  smoke:
+    name: Smoke test
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - run: |
+          check() {
+            for _ in 1 2 3 4 5; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL$1")
+              [ "$code" = "$2" ] && { echo "ok   $1 $code"; return 0; }
+              sleep 10
+            done
+            echo "FAIL $1 got $code, want $2"; return 1
+          }
+          check / 200
+          check /explore 200
+          check /daily 200
+          check /sign-in 200
+          check /styleguide 404
