@@ -24,6 +24,8 @@ Tests are `**/*.test.ts` next to the code; `@/` maps to the repo root and `serve
 
 Migrations: add a new timestamped file in `db/migrations/` (`YYYYMMDDTHHMM_name.sql`); never edit applied ones. Each file runs in its own transaction, so no `BEGIN`/`COMMIT`, and create continuous aggregates `WITH NO DATA`.
 
+CI (`.github/workflows/ci.yml`) runs typecheck, lint, unit tests, build, and migrations + `test:db` on a fresh TimescaleDB container. `deploy.yml` deploys `main` to Render after CI passes; pending production migrations wait for approval. Setup and flow: `docs/deploy.md` §7.
+
 ## Architecture
 
 Read `CONTEXT.md` first: capitalised terms (Module, Source Document, Game, Game Mode, Run, Prompt, Answer, Tier, Rarity…) are the domain vocabulary and code uses the same words. `docs/architecture/overview.md` is the system design, with one doc per pipeline in `docs/architecture/`; ADRs are in `docs/adr/`.

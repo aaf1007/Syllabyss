@@ -132,3 +132,29 @@ Each generated puzzle goes through the same checks and verification as a Game. T
 - [ ] Upload a small PDF (under 4 MB if on Vercel), generate a Dive Game, and play it.
 - [ ] Copy a Daily share and check the link uses `NEXT_PUBLIC_SITE_URL`.
 - [ ] `/styleguide` returns 404 in production (by design).
+
+## 7. Continuous deployment (GitHub Actions → Render)
+
+Two workflows on `aaf1007/Syllabyss`, #1:
+
+- **`.github/workflows/ci.yml`** runs on every PR and every push to `main`: `npm run typecheck` (runs `next typegen` first, since `RouteContext`/`PageProps` are generated types), lint, unit tests, `next build`, and a second job that migrates a throwaway `timescale/timescaledb-ha:pg17` container from scratch and runs `npm run test:db` against it. No secrets; it never touches the shared dev DB.
+- **`.github/workflows/deploy.yml`** runs when CI passes on `main` (or by hand: Actions → Deploy → Run workflow):
+  1. **plan**: `db:migrate -- --status` against production; the run summary lists pending migrations.
+  2. **migrate**: only if something is pending. Pauses for approval (environment `production`), then runs `db:migrate`.
+  3. **deploy**: asks Render, via its API, to deploy exactly the commit CI tested, and waits until it's `live`. If migrations were pending, this waits for the approval too, so new code never runs on an old schema.
+  4. **smoke**: `/`, `/explore`, `/daily`, `/sign-in` return 200 and `/styleguide` 404 on `SITE_URL`.
+
+### One-time setup (needs human, before `deploy.yml` reaches `main`)
+
+**Render** (the web service's dashboard):
+1. Settings → Build & Deploy → **Auto-Deploy: Off**. Otherwise Render deploys every push before migrations are approved.
+2. Copy the **service id** (`srv-…`) from the URL or Settings → Info.
+3. Account Settings → **API Keys** → Create API Key. Copy it now; it's shown once.
+
+**GitHub** (`aaf1007/Syllabyss` → Settings):
+1. Environments → New environment **`production-db`**: Deployment branches → Selected branches → `main`. Add secrets `DATABASE_URL` (the production Tiger Cloud URL) and `RENDER_API_KEY`.
+2. Environments → New environment **`production`**: Required reviewers → you; Deployment branches → `main`. Add secret `DATABASE_URL` (same value).
+3. Secrets and variables → Actions → **Variables**: `RENDER_SERVICE_ID` = `srv-…`, `SITE_URL` = `https://syllabyss.tech` (no trailing slash).
+4. Branches → Add rule for `main`: require status checks **Typecheck, lint, unit tests, build** and **Migrations + DB tests (fresh TimescaleDB)**. They appear in the list once CI has run once.
+
+To approve a migration: the Deploy run shows "Review deployments"; open the **plan** job's summary to see which files will run, then approve.
