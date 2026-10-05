@@ -1,6 +1,6 @@
 # #1 CI/CD: GitHub Actions CI and gated Render deploy
 
-Status: in-review
+Status: done
 Branch: feat/1-ci-cd
 Updated: 2026-10-05
 

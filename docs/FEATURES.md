@@ -52,6 +52,7 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F39 | Sonar stays on custom Modules: Read + Game cards, no Python Basics leak | Gameplay | F32, F35 | #83 | done |
 | F40 | Module page map: per-page performance across a Module's Games | Frontend | F07, F35 | #90 | done |
 | F41 | Fix: PDFs with symbol-font glyphs fail to parse (NUL in page text) | Pipelines | F03 | — | done |
+| F42 | CI/CD: GitHub Actions CI and gated Render deploy | Platform | F12 | #1 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
 
@@ -755,3 +756,18 @@ Entry points: `GenSteps` in `app/modules/_components/GenSteps.tsx`, used by `Gam
 
 Notes for others:
 - Steps are time-based (0/5/12/30/48 s after `created_at`) because generation reports only `generating`. If the pipeline ever reports a real stage, feed it into `GenSteps` instead of the elapsed time.
+
+## F42 CI/CD: GitHub Actions CI and gated Render deploy
+Issue #1 (aaf1007/Syllabyss)
+- [x] CI on every PR and push to `main`: typecheck (`next typegen` first), lint, unit tests, `next build`
+- [x] DB job: migrations from scratch + `npm run test:db` on a throwaway `timescaledb-ha:pg17` container
+- [x] Deploy after CI passes on `main`: pending production migrations behind the `production` environment approval, then the tested commit deployed via the Render API, then a smoke test
+- [x] Setup guide in `docs/deploy.md` §7
+
+Entry points: `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`
+
+Notes for others:
+- `npm run typecheck` now runs `next typegen` first; plain `tsc` on a fresh checkout fails on `RouteContext`/`PageProps`.
+- Render Auto-Deploy is Off: merging to `main` deploys only through `deploy.yml`. Deploy by hand with Actions → Deploy → Run workflow.
+- A PR that adds a migration gets it tested on a fresh DB in CI; after merge, the Deploy run waits for approval before migrating production and deploying.
+- CI needs no secrets. Production secrets live in the `production-db` and `production` environments (main only).
