@@ -12,7 +12,7 @@ const at = (iso: string) => new Date(iso);
 describe("Vancouver days", () => {
   it("starts a summer (PDT) day at 07:00 UTC and a winter (PST) day at 08:00 UTC", () => {
     expect(startOfVancouverDay("2026-10-04").toISOString()).toBe("2026-10-04T07:00:00.000Z");
-    expect(startOfVancouverDay("2026-12-01").toISOString()).toBe("2026-12-01T08:00:00.000Z");
+    expect(startOfVancouverDay("2025-12-01").toISOString()).toBe("2025-12-01T08:00:00.000Z");
   });
 
   it("flips the day exactly at Vancouver midnight", () => {
@@ -23,15 +23,17 @@ describe("Vancouver days", () => {
   });
 
   it("handles the fall-back day (25 hours) and the spring-forward day (23 hours)", () => {
-    // DST ends 2026-11-01 at 02:00 PDT: that day starts in PDT, the next in PST
-    expect(startOfVancouverDay("2026-11-01").toISOString()).toBe("2026-11-01T07:00:00.000Z");
-    expect(startOfVancouverDay("2026-11-02").toISOString()).toBe("2026-11-02T08:00:00.000Z");
-    expect(nextVancouverMidnight(at("2026-11-01T07:30:00Z")).toISOString()).toBe("2026-11-02T08:00:00.000Z");
-    expect(vancouverDay(at("2026-11-02T07:30:00Z"))).toBe("2026-11-01"); // 23:30 PST
-    // DST starts 2027-03-14 at 02:00 PST
-    expect(startOfVancouverDay("2027-03-14").toISOString()).toBe("2027-03-14T08:00:00.000Z");
-    expect(startOfVancouverDay("2027-03-15").toISOString()).toBe("2027-03-15T07:00:00.000Z");
-    expect(nextVancouverMidnight(at("2027-03-14T08:30:00Z")).toISOString()).toBe("2027-03-15T07:00:00.000Z");
+    // Past transitions only: tzdata 2026c keeps BC on daylight time (UTC−7) from March 2026,
+    // so future PST dates depend on the runtime's tz version. Old and new data agree on these.
+    // DST ended 2025-11-02 at 02:00 PDT: that day starts in PDT, the next in PST
+    expect(startOfVancouverDay("2025-11-02").toISOString()).toBe("2025-11-02T07:00:00.000Z");
+    expect(startOfVancouverDay("2025-11-03").toISOString()).toBe("2025-11-03T08:00:00.000Z");
+    expect(nextVancouverMidnight(at("2025-11-02T07:30:00Z")).toISOString()).toBe("2025-11-03T08:00:00.000Z");
+    expect(vancouverDay(at("2025-11-03T07:30:00Z"))).toBe("2025-11-02"); // 23:30 PST
+    // DST started 2026-03-08 at 02:00 PST
+    expect(startOfVancouverDay("2026-03-08").toISOString()).toBe("2026-03-08T08:00:00.000Z");
+    expect(startOfVancouverDay("2026-03-09").toISOString()).toBe("2026-03-09T07:00:00.000Z");
+    expect(nextVancouverMidnight(at("2026-03-08T08:30:00Z")).toISOString()).toBe("2026-03-09T07:00:00.000Z");
   });
 
   it("launched Daily #1 on 2026-10-04", () => {

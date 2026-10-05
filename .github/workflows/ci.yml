@@ -66,4 +66,6 @@ jobs:
       - run: docker exec ${{ job.services.timescaledb.id }} psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit"
       - run: npm run db:migrate
       - run: npm run db:migrate -- --status
+      # The Daily tests claim the next day's puzzle, which needs a non-empty pool (as on Tiger).
+      - run: npm run db:seed:courses && npm run db:seed:daily
       - run: npm run test:db

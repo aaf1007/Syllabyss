@@ -6,9 +6,9 @@ describe("vancouverDay", () => {
     // 06:59Z on Oct 5 is 23:59 PDT on Oct 4; 07:00Z is midnight Oct 5
     expect(vancouverDay(new Date("2026-10-05T06:59:00Z"))).toBe("2026-10-04");
     expect(vancouverDay(new Date("2026-10-05T07:00:00Z"))).toBe("2026-10-05");
-    // Winter (PST, UTC−8)
-    expect(vancouverDay(new Date("2026-12-01T07:59:00Z"))).toBe("2026-11-30");
-    expect(vancouverDay(new Date("2026-12-01T08:00:00Z"))).toBe("2026-12-01");
+    // Winter (PST, UTC−8). A past winter: tzdata 2026c keeps BC on UTC−7 from March 2026
+    expect(vancouverDay(new Date("2025-12-01T07:59:00Z"))).toBe("2025-11-30");
+    expect(vancouverDay(new Date("2025-12-01T08:00:00Z"))).toBe("2025-12-01");
   });
 });
 
