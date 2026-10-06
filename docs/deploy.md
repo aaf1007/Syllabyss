@@ -138,6 +138,8 @@ Each generated puzzle goes through the same checks and verification as a Game. T
 Two workflows on `aaf1007/Syllabyss`, #1:
 
 - **`.github/workflows/ci.yml`** runs on every PR and every push to `main`: `npm run typecheck` (runs `next typegen` first, since `RouteContext`/`PageProps` are generated types), lint, unit tests, `next build`, and a second job that migrates a throwaway `timescale/timescaledb-ha:pg17` container from scratch and runs `npm run test:db` against it. No secrets; it never touches the shared dev DB.
+  It also builds the `Dockerfile` (what Render builds), lints the workflow files with actionlint, and on PRs runs dependency review (fails on a new dependency with a known high or critical vulnerability).
+- **`.github/workflows/codeql.yml`** runs CodeQL (`security-extended`) on TypeScript/JavaScript and the workflow files, on PRs, `main` and weekly. Findings: Security → Code scanning. Leave the repo's CodeQL **Default setup** off; it can't run alongside this workflow.
 - **`.github/workflows/deploy.yml`** runs when CI passes on `main` (or by hand: Actions → Deploy → Run workflow):
   1. **plan**: `db:migrate -- --status` against production; the run summary lists pending migrations.
   2. **migrate**: only if something is pending. Pauses for approval (environment `production`), then runs `db:migrate`.

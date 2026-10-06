@@ -105,6 +105,8 @@ jobs:
   smoke:
     name: Smoke test
     needs: deploy
+    # always(): a skipped migrate job would otherwise skip this too, even after a good deploy
+    if: always() && needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     env:
       SITE_URL: ${{ vars.SITE_URL }}

@@ -24,7 +24,7 @@ Tests are `**/*.test.ts` next to the code; `@/` maps to the repo root and `serve
 
 Migrations: add a new timestamped file in `db/migrations/` (`YYYYMMDDTHHMM_name.sql`); never edit applied ones. Each file runs in its own transaction, so no `BEGIN`/`COMMIT`, and create continuous aggregates `WITH NO DATA`.
 
-CI (`.github/workflows/ci.yml`) runs typecheck, lint, unit tests, build, and migrations + `test:db` on a fresh TimescaleDB container. `deploy.yml` deploys `main` to Render after CI passes; pending production migrations wait for approval. Setup and flow: `docs/deploy.md` §7.
+CI (`.github/workflows/ci.yml`) runs typecheck, lint, unit tests, build, migrations + `test:db` on a fresh TimescaleDB container, a Docker image build, actionlint and (PRs) dependency review; `codeql.yml` runs CodeQL. `deploy.yml` deploys `main` to Render after CI passes; pending production migrations wait for approval. Setup and flow: `docs/deploy.md` §7.
 
 ## Architecture
 
