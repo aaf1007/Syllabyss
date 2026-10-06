@@ -11,6 +11,7 @@ Follow-up to #1: security and build checks on top of CI. Docs: `docs/deploy.md` 
 - `.github/workflows/codeql.yml`: CodeQL advanced setup, `security-extended`, matrix `javascript-typescript` + `actions`, build-mode none; PRs, main, weekly (Mon 09:17 UTC).
 - `ci.yml` jobs: `docker` (buildx build of the Dockerfile, no push, GHA cache), `actionlint` (v1.7.7 + preinstalled shellcheck), `dependency-review` (PRs only, fail on high).
 - actionlint clean locally.
+- `deploy.yml`: smoke job gets `if: always() && needs.deploy.result == 'success'`. The first real Deploy (after #2) skipped it because migrate was skipped and skips cascade.
 
 ## Next steps
 1. User review, then PR; its run is the first run of all four.
@@ -23,4 +24,4 @@ Follow-up to #1: security and build checks on top of CI. Docs: `docs/deploy.md` 
 - Docker build needs no build args: `next build` works without env (verified in #1).
 
 ## Files touched
-- .github/workflows/codeql.yml, .github/workflows/ci.yml, docs/deploy.md, CLAUDE.md, this worklog
+- .github/workflows/codeql.yml, .github/workflows/ci.yml, .github/workflows/deploy.yml, docs/deploy.md, CLAUDE.md, this worklog
