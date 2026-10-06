@@ -1,6 +1,6 @@
 # #3 CI: CodeQL, dependency review, Docker build check, actionlint
 
-Status: in-review
+Status: done
 Branch: feat/3-ci-security-checks
 Updated: 2026-10-05
 

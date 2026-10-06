@@ -53,6 +53,7 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F40 | Module page map: per-page performance across a Module's Games | Frontend | F07, F35 | #90 | done |
 | F41 | Fix: PDFs with symbol-font glyphs fail to parse (NUL in page text) | Pipelines | F03 | — | done |
 | F42 | CI/CD: GitHub Actions CI and gated Render deploy | Platform | F12 | #1 | done |
+| F43 | CI: CodeQL, dependency review, Docker build check, actionlint | Platform | F42 | #3 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
 
@@ -771,3 +772,16 @@ Notes for others:
 - Render Auto-Deploy is Off: merging to `main` deploys only through `deploy.yml`. Deploy by hand with Actions → Deploy → Run workflow.
 - A PR that adds a migration gets it tested on a fresh DB in CI; after merge, the Deploy run waits for approval before migrating production and deploying.
 - CI needs no secrets. Production secrets live in the `production-db` and `production` environments (main only).
+
+## F43 CI: CodeQL, dependency review, Docker build check, actionlint
+Issue #3 (aaf1007/Syllabyss)
+- [x] CodeQL (`security-extended`) on TypeScript/JavaScript and the workflow files: PRs, `main`, weekly
+- [x] CI jobs: Docker image build (the Dockerfile Render builds), actionlint, dependency review on PRs (fails on high/critical)
+- [x] Deploy: the smoke test runs even when the migrate job was skipped
+
+Entry points: `.github/workflows/codeql.yml`, jobs `docker`, `actionlint`, `dependency-review` in `.github/workflows/ci.yml`
+
+Notes for others:
+- Keep CodeQL **Default setup** off in Settings → Advanced Security; it conflicts with `codeql.yml`.
+- CodeQL findings: Security → Code scanning. A new high-severity alert on a PR shows as a failing CodeQL check.
+
