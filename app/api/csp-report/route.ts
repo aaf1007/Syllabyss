@@ -1,6 +1,6 @@
 import { violations } from "@/lib/security/csp-report";
 
-// CSP violation reports (#5): browsers POST here from the `report-uri` / `report-to` directives
+// CSP violation reports (#5): browsers POST here from the CSP's `report-uri`
 // (lib/security/headers.ts). Public by design, since browsers send no credentials. Each report becomes
 // one `[csp]` log line in Render, which is how we decide when to enforce the policy.
 

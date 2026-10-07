@@ -46,10 +46,11 @@ Set these on the host (**needs human**: they're secrets). `NEXT_PUBLIC_*` values
 |---|---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_live_…` (or `pk_test_…` for a dev instance) | A Clerk **production** instance needs a domain you own plus DNS records. For a hackathon demo the dev instance's keys also work on a deployed URL, with a "development mode" badge and lower limits |
 | `CLERK_SECRET_KEY` | `sk_live_…` / `sk_test_…` | |
+| `CLERK_WEBHOOK_SIGNING_SECRET` | `whsec_…` | The `/api/webhooks/clerk` endpoint's secret (Clerk Dashboard → Webhooks). Without it, deleting a user in Clerk leaves their data behind. `docs/security.md` |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` | |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` | |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`, `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/home` | Optional. Where Clerk lands after sign-in when there's no redirect |
-| `DATABASE_URL` | The production Tiger Cloud service, `…?sslmode=require` | Use a **separate** service from `stormhacks-dev` (see §3) |
+| `DATABASE_URL` | The production Tiger Cloud service, `…?sslmode=verify-full` | Use a **separate** service from `stormhacks-dev` (see §3) |
 | `GEMINI_API_KEY` | A key with billing enabled | Free-tier rate limits will stall generation during a demo |
 | `GEMINI_MODEL` | `gemini-3.6-flash` | |
 | `GEMINI_FALLBACK_MODEL` | `gemini-3.5-flash-lite` | Used when the main model is still 503 after retries |
@@ -57,7 +58,7 @@ Set these on the host (**needs human**: they're secrets). `NEXT_PUBLIC_*` values
 | `GEMINI_VERIFY_MODEL` | unset | Defaults to the fallback model |
 | `SONAR_MODEL` | `claude-sonnet-5-5` | Sonar's coach model (F32). `claude-…` calls Anthropic directly; `anthropic/…` goes through the LangSmith LLM Gateway (beta, not enabled on the free plan); any other name is a Gemini model. Gemini is always the fallback |
 | `ANTHROPIC_API_KEY` | `sk-ant-…` | For the Claude coach. Without it, Sonar falls back to Gemini |
-| `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | your key, `true`, `syllabyss-sonar` | Optional: traces every Sonar turn in LangSmith |
+| `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | unset in production | Optional: traces every Sonar turn (Players' messages included) in LangSmith. If you turn it on in production, add LangSmith to `/privacy` first |
 | `NEXT_PUBLIC_SITE_URL` | `https://<your domain>` | The link at the end of the Daily share text. Without it, shares point at `http://localhost:3000` |
 | `NODE_ENV` | `production` (hosts set it) | |
 | **`DEV_PLAYER_ID`** | **never set** | Dev-only auth bypass. `lib/auth.ts` honours it only when `NODE_ENV === 'development'`, but leave it unset anyway. If set under `next dev` it signs everyone in as that Player |

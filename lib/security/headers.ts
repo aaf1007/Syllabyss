@@ -52,8 +52,9 @@ export function contentSecurityPolicy({ clerkOrigin, dev }: { clerkOrigin: strin
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
     "frame-ancestors": ["'none'"],
+    // report-uri only: Chrome ignores it when report-to is also set, and its Reporting API didn't
+    // deliver to a relative endpoint in testing. Firefox and Safari support only report-uri for CSP.
     "report-uri": [CSP_REPORT_PATH],
-    "report-to": ["csp"],
   };
   return Object.entries(directives)
     .map(([name, values]) => `${name} ${values.join(" ")}`)
@@ -80,7 +81,6 @@ export function securityHeaders({
       value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
     },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-    { key: "Reporting-Endpoints", value: `csp="${CSP_REPORT_PATH}"` },
     {
       key: enforce ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only",
       value: contentSecurityPolicy({ clerkOrigin, dev }),

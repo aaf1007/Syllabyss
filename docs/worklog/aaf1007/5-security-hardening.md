@@ -1,8 +1,8 @@
 # #5 Security hardening for real users
 
-Status: in-progress
+Status: in-review
 Branch: feat/5-security-hardening
-Updated: 2026-10-06 23:30
+Updated: 2026-10-06 23:40
 
 ## Goal
 Make syllabyss.tech safe to open to real users: security headers + CSP, rate limits on the AI routes,
@@ -21,10 +21,15 @@ privacy/terms pages, account deletion, and a checklist of the manual (dashboard/
 - Tests: headers, csp-report, rate-limit (unit); rate-limit + account delete (db), run against a local
   timescale/timescaledb-ha:pg17 container, not the shared DB.
 
+- docs/security.md: the manual checklist (Clerk webhook + protections, Render env incl. verify-full, AI spend caps,
+  Tiger backups, domain reputation, DNS SPF/DMARC/CAA, privacy@ forwarding, CSP enforce, Dependabot #2).
+- Verified: prod build + `next start` on a local DB; headers present, x-powered-by gone; /settings, /privacy, /terms render;
+  CSP reports arrive (`[csp]` log) and no violations from our own pages; full `test:db` (106) green on a local container.
+
 ## Next steps
-1. docs/security.md: manual checklist (domain reputation, DNS CAA/SPF/DMARC, Clerk, Render env, Tiger backups, CSP enforce).
-2. Run the app locally, check headers + CSP report-only console for violations on /, sign-in, a Mode screen.
-3. `npm run build`; hand to the user for review. No PR until approved.
+1. User reviews (handed over 2026-10-06). On approval: tick F44 in docs/FEATURES.md (new row + section, Platform lane,
+   issue #5), set this worklog to done, open the PR with `Closes #5`.
+2. After merge: user works through docs/security.md; ~a week later flip `CSP_ENFORCE`.
 
 ## Decisions & gotchas
 - CSP is built at **build time** (next.config headers), so the Clerk host comes from the Docker build arg
@@ -33,6 +38,9 @@ privacy/terms pages, account deletion, and a checklist of the manual (dashboard/
 - Rate limits: denied requests don't count; advisory lock per Player+action; site-wide '*' key caps the daily AI bill.
 - Account delete: hypertables (guess_events, xp_events, daily_results, daily_answer_finds) have no FK, deleted explicitly;
   the rest cascades from players. Continuous aggregates are refreshed after (outside a tx).
+- report-to was dropped: with it Chrome ignored report-uri and never delivered reports to the relative endpoint.
+- `fonts.gstatic.com` CSP reports seen locally came from a browser extension (absent in a clean profile), not our code.
+- Tiger Cloud's DB cert chains to GTS Root R1, so `sslmode=verify-full` works (tested read-only on the dev service).
 - `lib/daily/daily.test.ts` "reads NEXT_PUBLIC_SITE_URL" fails locally when .env.local sets it; same on main, unrelated.
 
 ## Files touched
