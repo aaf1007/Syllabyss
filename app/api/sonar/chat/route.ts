@@ -1,4 +1,5 @@
 import { getApiPlayer } from "@/lib/auth";
+import { rateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 import { runSonar } from "@/lib/sonar/agent";
 import { parseChatRequest } from "@/lib/sonar/chat-request";
 import type { ChatResponse } from "@/lib/sonar/types";
@@ -22,6 +23,8 @@ export async function POST(req: Request) {
   }
   const parsed = parseChatRequest(body);
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
+  const limit = await rateLimit(playerId, "sonar");
+  if (!limit.ok) return rateLimitedResponse(limit);
 
   try {
     const res: ChatResponse = await runSonar({

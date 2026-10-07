@@ -32,6 +32,9 @@ const BUBBLE_KINDS = new Set(["reveal", "topic", "module"]);
 /** Pages that get a fresh briefing when the drawer opens there after a chat on another page. */
 const REBRIEF_KINDS: Record<string, string> = { reveal: "this Run", topic: "this Topic", module: "this Module", game: "this Game" };
 
+/** The chat route said 429 (#5): show its reason instead of the generic error. */
+class RateLimited extends Error {}
+
 function load<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
@@ -157,6 +160,9 @@ export function SonarBuddy() {
           // The chat route isn't merged yet: answer with the demo reply so the UI can be built.
           await new Promise((r) => setTimeout(r, 900));
           body = FIXTURE_CHAT;
+        } else if (res.status === 429) {
+          const limited = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new RateLimited(limited.error ?? "Too many messages. Give me a minute.");
         } else if (!res.ok) {
           throw new Error(`chat ${res.status}`);
         } else {
@@ -166,10 +172,15 @@ export function SonarBuddy() {
         sfx.pop();
         setTalking(true);
         setTimeout(() => setTalking(false), 1600);
-      } catch {
+      } catch (e) {
         update(id, (m) => [
           ...m,
-          { id: ++nextId, role: "error", text: "My sonar lost the signal for a second. Want me to try again?", retry: text ?? null },
+          {
+            id: ++nextId,
+            role: "error",
+            text: e instanceof RateLimited ? e.message : "My sonar lost the signal for a second. Want me to try again?",
+            retry: text ?? null,
+          },
         ]);
       } finally {
         pendingRef.current = false;

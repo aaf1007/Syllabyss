@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { parseDocument } from "@/lib/documents/parse-document";
 import { UserFacingError, validateUpload } from "@/lib/documents/parsed-pages";
 import { documentColumns, isUuid, type SourceDocument } from "@/lib/documents/queries";
+import { rateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 // Parsing runs in after(); give it room on platforms that honour maxDuration.
 export const maxDuration = 300;
@@ -36,6 +37,9 @@ export async function POST(req: Request, { params }: Ctx) {
   if (!playerId) return Response.json({ error: "Not signed in" }, { status: 401 });
   const { moduleId } = await params;
   if (!(await ownsModule(playerId, moduleId))) return Response.json({ error: "Module not found" }, { status: 404 });
+  // Before reading the body, so a refused upload doesn't buffer 25 MB first.
+  const limit = await rateLimit(playerId, "upload");
+  if (!limit.ok) return rateLimitedResponse(limit);
 
   let file: FormDataEntryValue | null;
   try {
