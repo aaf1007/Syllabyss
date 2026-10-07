@@ -2,6 +2,7 @@ import "server-only";
 import type postgres from "postgres";
 import type { RunSummary } from "@/lib/runs/types";
 import { TIER_BELOW, type Tier } from "@/lib/scoring/tiers";
+import { isGuest } from "@/lib/guest";
 import { onDailyPlayed } from "@/lib/social/xp";
 import { vancouverDay } from "./days";
 import { shareText } from "./share";
@@ -76,20 +77,39 @@ export async function recordDailyRun(
   return true;
 }
 
+/**
+ * Where a score would place on `day`'s board had it counted: 1 + the counted Runs that beat it
+ * (a higher score, or the same score finished earlier), the board's order. For Guests (#8).
+ */
+export async function wouldPlace(db: Db, day: string, score: number, finishedAt: Date): Promise<number> {
+  const [{ ahead }] = await db<{ ahead: number }[]>`
+    select count(*)::int as ahead from daily_results
+     where day = ${day} and (score > ${score} or (score = ${score} and finished_at < ${finishedAt}))`;
+  return ahead + 1;
+}
+
 /** Reveal.daily and Reveal.crowd for a finished Run; both null unless its Game is a Daily puzzle. */
 export async function dailyReveal(
   db: Db, playerId: string, run: { id: string; gameId: string; score: number },
 ): Promise<{ daily: DailyReveal | null; crowd: CrowdReveal | null }> {
   const puzzle = await puzzleForGame(db, run.gameId);
   if (!puzzle || puzzle.day === null) return { daily: null, crowd: null };
-  const [own] = await db<{ run_id: string }[]>`
-    select run_id from daily_results where player_id = ${playerId} and day = ${puzzle.day}`;
+  const [[own], guest] = await Promise.all([
+    db<{ run_id: string }[]>`select run_id from daily_results where player_id = ${playerId} and day = ${puzzle.day}`,
+    isGuest(playerId, db),
+  ]);
   const counted = own?.run_id === run.id;
+  // A Guest's one dive is their day's result when it finished on the puzzle's day.
+  let place: number | null = null;
+  if (guest) {
+    const [{ finished_at }] = await db<{ finished_at: Date }[]>`select finished_at from runs where id = ${run.id}`;
+    if (vancouverDay(finished_at) === puzzle.day) place = await wouldPlace(db, puzzle.day, run.score, finished_at);
+  }
   const tiers = await runTiers(db, run.id);
   return {
     daily: {
-      number: puzzle.number, day: puzzle.day, title: puzzle.title, counted, tiers,
-      shareText: shareText({ number: puzzle.number, score: run.score, tiers, counted }),
+      number: puzzle.number, day: puzzle.day, title: puzzle.title, counted, guest, wouldPlace: place, tiers,
+      shareText: shareText({ number: puzzle.number, score: run.score, tiers, counted: counted || place !== null }),
     },
     crowd: await crowdStats(db, puzzle.day, run),
   };

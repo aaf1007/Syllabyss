@@ -3,6 +3,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { EmptyState } from "@/components/social/EmptyState";
 import { Button } from "@/components/ui";
 import { getApiPlayer } from "@/lib/auth";
+import { getGuest } from "@/lib/guest";
 import { sql } from "@/lib/db";
 import { dailyArchive, dailyLeaderboard, dailyToday } from "@/lib/daily/queries";
 import { crowdStats } from "@/lib/daily/record";
@@ -16,14 +17,15 @@ export const metadata: Metadata = {
 
 // The Daily Dive hub (F28 #41, decisions §7, Q9, Q23, §14): today's puzzle and your result,
 // the flip-clock countdown, your Daily streak, today's leaderboard and the archive. Works
-// signed out (play needs sign-in). Data comes straight from lib/daily (F23); the client
+// signed out: you play as a Guest (#8), off the board. Data comes straight from lib/daily (F23); the client
 // refreshes the leaderboard tabs from /api/daily/leaderboard.
 export default async function DailyPage() {
-  const playerId = await getApiPlayer();
-  if (playerId) {
+  const player = await getApiPlayer();
+  if (player) {
     const clerkUser = await currentUser().catch(() => null);
-    await ensureProfile(playerId, clerkUser ?? undefined);
+    await ensureProfile(player, clerkUser ?? undefined);
   }
+  const playerId = player ?? (await getGuest());
 
   const now = new Date();
   const daily = await dailyToday(playerId, now);

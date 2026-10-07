@@ -1,6 +1,7 @@
 import "server-only";
 import { auth } from "@clerk/nextjs/server";
 import { sql } from "./db";
+import { getGuest } from "./guest";
 
 // proxy.ts doesn't gate routes, so one of these is the auth check. Call it first in every
 // page, server action and route handler that touches Player data, then filter every query
@@ -47,6 +48,14 @@ export async function getApiPlayer(): Promise<string | null> {
 function devPlayerId(): string | null {
   if (process.env.NODE_ENV !== "development") return null;
   return process.env.DEV_PLAYER_ID || null;
+}
+
+/**
+ * Run pages (#8): the signed-in Player, else this browser's Guest (Daily Dive only), else
+ * redirect to sign-in like requirePlayer(). Every read still filters by the returned id.
+ */
+export async function requirePlayerOrGuest(): Promise<string> {
+  return (await getApiPlayer()) ?? (await getGuest()) ?? requirePlayer();
 }
 
 // Not cached per process: a shared dev DB can be reset under a running server.

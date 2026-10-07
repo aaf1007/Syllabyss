@@ -9,7 +9,8 @@ export type { Leaderboard, Streak, Tier };
 export type ShareTiers = (Tier | null)[];
 
 /** not_played: no Run on today's puzzle yet · in_progress: a Run to resume · counted: today's result is in. */
-export type DailyStatus = "not_played" | "in_progress" | "counted";
+/** "played": a Guest finished today's dive (it never counts; #8). */
+export type DailyStatus = "not_played" | "in_progress" | "counted" | "played";
 
 /** A Player's counted Run for one day. */
 export type DailyResult = {
@@ -39,9 +40,13 @@ export type DailyToday = {
   serverNow: string;
   me: {
     status: DailyStatus;
-    /** The Run to resume when in_progress, the counted Run when counted, else null. */
+    /** The Run to resume when in_progress, the counted Run when counted (a Guest's Run when played), else null. */
     runId: string | null;
     result: DailyResult | null;
+    /** A signed-out Guest (#8): no Leaderboard, XP or streaks. */
+    guest: boolean;
+    /** A Guest's place had their dive counted (rank among today's counted Runs); null otherwise. */
+    wouldPlace: number | null;
     /** Days in a row with any finished Run (F21's Streak). */
     streak: Streak;
     /** Days in a row with a counted Daily Run. */
@@ -55,6 +60,8 @@ export type DailyRunResponse = {
   resumed: boolean;
   /** False: today's counted Run is already in, so this one is practice (no daily_results, normal Run XP). */
   counted: boolean;
+  /** A signed-out Guest's dive (#8): never counted; one per day. */
+  guest: boolean;
   number: number;
   day: string;
 };
@@ -89,8 +96,12 @@ export type DailyReveal = {
   number: number;
   day: string;
   title: string;
-  /** This Run is the Player's counted Run for that day (false = practice). */
+  /** This Run is the Player's counted Run for that day (false = practice, or a Guest's). */
   counted: boolean;
+  /** A Guest's Run (#8): shown as their day's result, but off the Leaderboard. */
+  guest: boolean;
+  /** A Guest's place had their dive counted; null otherwise. */
+  wouldPlace: number | null;
   tiers: ShareTiers;
   /** Ready to copy; a practice Run's header says "(practice)". */
   shareText: string;
