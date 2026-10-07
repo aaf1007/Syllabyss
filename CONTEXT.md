@@ -16,6 +16,14 @@ _Avoid_: Course, folder, class, project
 One file a Player uploaded into a Module (PDF, PPTX, DOCX), which Prompts are generated from.
 _Avoid_: Upload, file, material
 
+**Page**:
+One page of a Source Document: a PDF page, a PPTX slide, or a section of a DOCX (Word files have no fixed pages, so they are split at page breaks or headings). Evidence points at one Page.
+_Avoid_: Slide (in code and docs), chunk
+
+**Figure**:
+An image on a Page (an embedded picture, or the whole Page when it is a scan), with a description written at upload so Games can be generated from it. Small decorations and repeated logos are not Figures.
+_Avoid_: Image (on its own), picture, attachment
+
 **Game**:
 The set of Prompts generated once, in one Game Mode, from a chosen subset of a Module's Source Documents. A Game is never regenerated; to change it, the Player makes a new Game.
 _Avoid_: Deck, quiz, set

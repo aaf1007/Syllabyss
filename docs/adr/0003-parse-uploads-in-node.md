@@ -1,5 +1,7 @@
 # Parse uploads in Node, not Snowflake
 
+_Amended by ADR-0007: images extracted from uploads (Figures) are now kept in R2. The original file still is not._
+
 Supersedes the Snowflake part of ADR-0002. **Uploaded files are parsed inside the Next.js server**: PDF with `unpdf` (pdf.js text layer), PPTX by reading the slide XML with `jszip`, DOCX with `mammoth`. Each produces one markdown string per page (per slide for PPTX; per page break or ~3,000-character section for DOCX), stored in `source_pages` exactly as before. The original file isn't kept. Gemini (generation) and Tiger Data (storage) are unchanged.
 
 We first built the Snowflake version (stage + `AI_PARSE_DOCUMENT`). On the first live run the key-pair login and `PUT` worked, but Snowflake refused the parse: `AI function _AI_PARSE_DOCUMENT is not available for trial accounts` (error 399258). Self-service trials keep AI features off until a credit card is added, and we didn't want to require that.
