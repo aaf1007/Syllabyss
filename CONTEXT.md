@@ -245,3 +245,7 @@ _Avoid_: Official run, attempt
 **Practice Run**:
 Any other Run of a Daily Puzzle: a replay the same day, or a past day's puzzle played from the archive. It earns normal Run XP but never counts for the day.
 _Avoid_: Replay (fine in UI copy, but say Practice Run in code and docs)
+
+**Guest**:
+A signed-out visitor who plays the Daily Dive. A Guest is not a Player: their Runs are kept, but they never appear on a Leaderboard and earn no XP, streak or badges. Signing up later does not carry a Guest's Runs over.
+_Avoid_: Anonymous player, visitor (in game logic)
