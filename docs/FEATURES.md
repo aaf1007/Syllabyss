@@ -54,6 +54,7 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F41 | Fix: PDFs with symbol-font glyphs fail to parse (NUL in page text) | Pipelines | F03 | — | done |
 | F42 | CI/CD: GitHub Actions CI and gated Render deploy | Platform | F12 | #1 | done |
 | F43 | CI: CodeQL, dependency review, Docker build check, actionlint | Platform | F42 | #3 | done |
+| F44 | Landing: all six Game Modes in an even grid | Frontend | F19 | #6 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
 
@@ -785,3 +786,13 @@ Notes for others:
 - Keep CodeQL **Default setup** off in Settings → Advanced Security; it conflicts with `codeql.yml`.
 - CodeQL findings: Security → Code scanning. A new high-severity alert on a PR shows as a failing CodeQL check.
 
+## F44 Landing: all six Game Modes in an even grid
+Issue #6 (aaf1007/Syllabyss)
+- [x] Arena tile and pitch on the landing Game Modes section
+- [x] Tiles come from `MODE_UI_LIST`; heading count follows it ("Six ways…")
+- [x] 1 / 2 / 3 column grid with equal-height tiles
+
+Entry points: `ModesShowcase` in `components/landing/Sections.tsx`
+
+Notes for others:
+- A new Mode shows on the landing page once it is in `MODE_UI` (`lib/ui/modes.ts`); `MODE_PITCH` is typed by `ModeUiId`, so typecheck fails until it has a pitch.

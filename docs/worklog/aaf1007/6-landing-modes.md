@@ -1,8 +1,8 @@
 # #6 Landing: show all six Game Modes in an even grid
 
-Status: in-review
+Status: done
 Branch: feat/6-landing-modes
-Updated: 2026-10-06
+Updated: 2026-10-07
 
 ## Goal
 The landing page Game Modes section listed 5 of the 6 Modes (no Arena) and its tiles were uneven. Show all six in an equal-height grid. Spec: issue #6.
@@ -14,7 +14,7 @@ The landing page Game Modes section listed 5 of the 6 Modes (no Arena) and its t
 - Checked signed-out render at 390, 700 and 1100px wide: 1/2/3 columns, equal heights (312/289/287px), no horizontal scroll. Typecheck + eslint clean.
 
 ## Next steps
-1. User review; on approval open the PR (tick FEATURES.md, set this to done, `Closes #6`).
+1. None: approved and shipped in the PR closing #6.
 
 ## Decisions & gotchas
 - Under `next dev`, `/` redirects signed-in browsers to /home (DEV_PLAYER_ID or a Clerk cookie). To see the landing, run with `DEV_PLAYER_ID=` and fetch `/` with `credentials: 'omit'`.
