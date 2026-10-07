@@ -1,6 +1,6 @@
 # #9 Delete a Module
 
-Status: in-review
+Status: done
 Branch: feat/9-delete-module
 Updated: 2026-10-07
 
@@ -16,7 +16,7 @@ Let a Player delete a whole Module from its page, behind a type-the-name confirm
 - Checked in the browser with a throwaway `DEV_PLAYER_ID` player (since deleted): gating, Enter, redirect, toast, deleted Module URL shows "Module not found".
 
 ## Next steps
-1. User review; on approval open the PR (FEATURES.md row, set this to done, `Closes #9`).
+1. None: approved and shipped in the PR closing #9.
 2. When #7 (Figures) lands, delete the Module's Figure objects from R2 after this commits.
 
 ## Decisions & gotchas
