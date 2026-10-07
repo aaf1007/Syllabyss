@@ -54,7 +54,16 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 border-t border-border/60 px-4 py-4 text-xs text-faint sm:px-6">
-        <span>© 2026 SYLLABYSS · a StormHacks 2026 project</span>
+        <span>
+          © 2026 SYLLABYSS · a StormHacks 2026 project ·{" "}
+          <Link href="/privacy" className="hover:text-signal">
+            Privacy
+          </Link>{" "}
+          ·{" "}
+          <Link href="/terms" className="hover:text-signal">
+            Terms
+          </Link>
+        </span>
         <span className="flex items-center gap-1.5" title="There's a secret up there somewhere">
           <PixelIcon name="fish" size={14} /> ↑ ↑ ↓ ↓ ← → ← → B A
         </span>
