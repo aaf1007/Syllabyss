@@ -74,43 +74,36 @@ Do them roughly in this order. Tick them off in issue #5.
 - [ ] Check https://transparencyreport.google.com/safe-browsing/search?url=syllabyss.tech says "No unsafe content found".
 - [ ] If it's still flagged on your work laptop after the vendor accepts it, ask your IT team to allow-list it. The "newly registered" flag lifts on its own after ~30 days.
 
-### 7. DNS (Namify / get.tech DNS manager; nameservers are `tech-domains.*.orderbox-dns.com`)
+### 7. DNS and privacy@ email (done 2026-10-08)
 
-Keep every existing record (the Render A/CNAME, and Clerk's `clerk`, `accounts`, `clkmail`, `clk._domainkey`, `clk2._domainkey`). Add:
+DNS is managed at get.tech (manage.get.tech → syllabyss.tech → DNS → DNS Records; Namify is the registrar). Mail to **privacy@syllabyss.tech** (given in `/privacy` and `/terms`) is forwarded by **ImprovMX**. Records now in place:
 
 | Type | Host | Value | Why |
 |---|---|---|---|
-| TXT | `@` | `v=spf1 -all` | The bare domain sends no mail. Clerk's emails go out via `clkmail.syllabyss.tech`, which has its own records |
+| A | `@` | Render's IP | The site |
+| CNAME | `clerk`, `accounts`, `clkmail`, `clk._domainkey`, `clk2._domainkey` | Clerk's | Sign-in and Clerk's emails. Don't touch |
+| MX | `@` | `mx1.improvmx.com` (10), `mx2.improvmx.com` (20) | privacy@ forwarding |
+| TXT | `@` | `v=spf1 include:spf.improvmx.com ~all` | Only ImprovMX may send as the bare domain. Clerk's emails go out via `clkmail.syllabyss.tech`, which has its own records |
 | TXT | `_dmarc` | `v=DMARC1; p=quarantine; adkim=r; aspf=r` | Mail faking `@syllabyss.tech` goes to spam. Clerk's emails still pass, through their DKIM (`clk._domainkey`) |
-| CAA | `@` | `0 issue "pki.goog"` | Only these CAs may issue certificates for the domain. Google Trust Services issues the current ones |
-| CAA | `@` | `0 issue "letsencrypt.org"` | Render's and Cloudflare's fallback CA |
-| CAA | `@` | `0 issue "ssl.com"` | Cloudflare (Clerk's subdomains) may use it |
-| CAA | `@` | `0 issue "sectigo.com"` | Same |
 
-- [ ] After adding them, sign up with a test email address and check the verification code still arrives (not in spam).
-- [ ] If you later **send** mail from your own address on this domain (e.g. replying from privacy@ through Gmail), change the SPF record to include that provider first.
+- There is **one** SPF record. If you add another mail sender (e.g. replying from privacy@ through Gmail), add its `include:` to that record; never add a second `v=spf1` record.
+- No CAA records: the get.tech DNS manager doesn't offer the type.
+- [ ] Turn on **Auto-Renew** (get.tech → Overview). The domain expires 2027-10-04.
 - [ ] Optional: once HSTS has been live a few weeks with no problems, add `; preload` to the HSTS header in `lib/security/headers.ts` and submit at https://hstspreload.org. It's hard to undo, so only do it once you're sure every subdomain will stay HTTPS.
 
-### 8. Email for privacy requests
-
-`/privacy` and `/terms` give **privacy@syllabyss.tech**. Make it reach you:
-
-- [ ] Set up forwarding to your own inbox, with your registrar's email forwarding or a free forwarder such as ImprovMX. That adds MX records, which is fine alongside the SPF/DMARC records above.
-- [ ] Send it a test email.
-
-### 9. Turn the CSP on (about a week after step 1)
+### 8. Turn the CSP on (about a week after step 1)
 
 - [ ] In Render → Logs, search for `[csp]`. Ignore violations from browser extensions: a `blocked` URL like `fonts.gstatic.com` or `chrome-extension://` that none of our code loads. In testing, a font extension in one browser produced Google Fonts reports that a clean browser didn't.
 - [ ] For any real violation (our own page loading something), add the host to `lib/security/headers.ts`.
 - [ ] When it's quiet, set `CSP_ENFORCE = true`, ship it, and click through sign-in, a Module upload, each Game Mode and Sonar on the live site.
 
-### 10. GitHub
+### 9. GitHub
 
-- [ ] **Security → Dependabot**: alert #2 (`sprintf-js`, moderate) comes from `mammoth` → `argparse`, which only mammoth's command-line tool uses; our code calls the library API. There's no patched version and `npm audit fix --force` downgrades mammoth by years. Dismiss it as "Vulnerable code is not actually used".
-- [ ] **Settings → Code security**: turn on **Secret scanning** and **Push protection** (free for public repos), so a pasted API key is blocked at push time.
+- [x] **Security → Dependabot**: alert #2 (`sprintf-js`, moderate) comes from `mammoth` → `argparse`, which only mammoth's command-line tool uses; our code calls the library API. There's no patched version and `npm audit fix --force` downgrades mammoth by years. Dismiss it as "Vulnerable code is not actually used".
+- [x] **Settings → Code security**: turn on **Secret scanning** and **Push protection** (free for public repos), so a pasted API key is blocked at push time.
 - [ ] Settings → Collaborators: remove anyone who no longer needs write access.
 
-### 11. Before inviting lots of users (later)
+### 10. Before inviting lots of users (later)
 
 - Have someone who knows the relevant law read `/privacy` and `/terms`. They were written to match how the code handles data, but they're not legal advice. If you have users in BC, check BC PIPA; in the EU, the GDPR.
 - Consider a "Download my data" export in Settings. `/privacy` currently says to email for a copy.
