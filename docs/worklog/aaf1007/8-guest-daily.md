@@ -1,6 +1,6 @@
 # #8 Guest Daily Dive
 
-Status: in-review
+Status: done
 Branch: feat/8-guest-daily
 Updated: 2026-10-07
 
@@ -17,7 +17,7 @@ Signed-out visitors can play today's Daily Dive once as a Guest, off the Leaderb
 - Tests: 2 new DB tests (daily.db.test.ts "Guest Daily Dive"), format tests. Full test:db 104/104. Browser: played a full Guest dive signed out on localhost:3008; card, 409, Reveal verified; test Guest deleted.
 
 ## Next steps
-1. User review; on approval open the PR (FEATURES.md row, set this to done, `Closes #8`).
+1. None. PR open; follow-ups: Guest row cleanup, rate limit on Guest creation.
 
 ## Decisions & gotchas
 - Cookie is unsigned: the value is a random `guest_<uuid>` and must match an existing `is_guest` row, so signing would add a secret to manage without adding protection (the issue said "signed").

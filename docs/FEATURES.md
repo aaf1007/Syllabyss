@@ -55,6 +55,7 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F42 | CI/CD: GitHub Actions CI and gated Render deploy | Platform | F12 | #1 | done |
 | F43 | CI: CodeQL, dependency review, Docker build check, actionlint | Platform | F42 | #3 | done |
 | F44 | Landing: all six Game Modes in an even grid | Frontend | F19 | #6 | done |
+| F46 | Guest Daily Dive: today's puzzle signed out, off the Leaderboard | Platform | F23, F28 | #8 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
 
@@ -796,3 +797,17 @@ Entry points: `ModesShowcase` in `components/landing/Sections.tsx`
 
 Notes for others:
 - A new Mode shows on the landing page once it is in `MODE_UI` (`lib/ui/modes.ts`); `MODE_PITCH` is typed by `ModeUiId`, so typecheck fails until it has a pitch.
+
+## F46 Guest Daily Dive: today's puzzle signed out, off the Leaderboard
+Issue #8 (aaf1007/Syllabyss)
+- [x] `players.is_guest` and a Guest cookie, created only when a signed-out visitor starts today's dive
+- [x] Guests play the Run like anyone else; one finished dive per day (409 after)
+- [x] No XP, streaks, badges, Daily results or crowd stats for Guests; the global Game leaderboard excludes them
+- [x] Today card and Reveal: "You'd be #N", better-than %, share text, sign-up CTA; no Sonar for Guests
+
+Entry points: `lib/guest.ts` (`getGuest`, `ensureGuest`, `isGuest`), `requirePlayerOrGuest()` in `lib/auth.ts`, `runRoute(fn, { guests: true })` in `lib/runs/http.ts`, `dailyRoute("guest" | "optional")` in `lib/daily/http.ts`, `guestMe()` in `lib/daily/queries.ts`, `wouldPlace()` in `lib/daily/record.ts`
+
+Notes for others:
+- A Guest is a `players` row with `is_guest = true` and no username, so Profiles, search and friends never see it. Anything new that reads `runs` or `players` for a public list must exclude `is_guest`.
+- Only the `/api/runs/[runId]/*` routes and the Run/Reveal pages accept Guests; every other route stays sign-in only. Opt a new route in with `runRoute(fn, { guests: true })` only if a Guest's own Run needs it.
+- Guest sign-up doesn't carry the dive over. Old Guest rows are never cleaned up and Guest creation isn't rate-limited yet.
