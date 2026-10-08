@@ -57,6 +57,7 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F44 | Landing: all six Game Modes in an even grid | Frontend | F19 | #6 | done |
 | F45 | Delete a Module | Frontend | F08 | #9 | done |
 | F46 | Guest Daily Dive: today's puzzle signed out, off the Leaderboard | Platform | F23, F28 | #8 | done |
+| F47 | Fix: Dive odd-one-out tiles cut off at the bottom | Frontend | F09, F33 | #15 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
 
@@ -825,3 +826,12 @@ Notes for others:
 - A Guest is a `players` row with `is_guest = true` and no username, so Profiles, search and friends never see it. Anything new that reads `runs` or `players` for a public list must exclude `is_guest`.
 - Only the `/api/runs/[runId]/*` routes and the Run/Reveal pages accept Guests; every other route stays sign-in only. Opt a new route in with `runRoute(fn, { guests: true })` only if a Guest's own Run needs it.
 - Guest sign-up doesn't carry the dive over. Old Guest rows are never cleaned up and Guest creation isn't rate-limited yet.
+
+## F47 Fix: Dive odd-one-out tiles cut off at the bottom
+Issue #15
+- [x] The Dive play area pads its scroll wrapper so the tiles' ring and drop shadow aren't clipped (odd-one-out grid and put-in-order list)
+
+Entry points: the play area in `components/modes/dive/DiveRunScreen.tsx`
+
+Notes for others:
+- `OptionGrid` and `OrderList` draw their borders with `box-shadow`, which reaches 4px past each tile (8px below for `OptionGrid`). Any `overflow-*` wrapper around them clips that, so give it padding (and a matching negative margin to keep alignment).
