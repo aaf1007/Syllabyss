@@ -58,6 +58,7 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F45 | Delete a Module | Frontend | F08 | #9 | done |
 | F46 | Guest Daily Dive: today's puzzle signed out, off the Leaderboard | Platform | F23, F28 | #8 | done |
 | F47 | Fix: Dive odd-one-out tiles cut off at the bottom | Frontend | F09, F33 | #15 | done |
+| F48 | Random pixel avatar for new Players | Platform | F21 | #17 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
 
@@ -835,3 +836,14 @@ Entry points: the play area in `components/modes/dive/DiveRunScreen.tsx`
 
 Notes for others:
 - `OptionGrid` and `OrderList` draw their borders with `box-shadow`, which reaches 4px past each tile (8px below for `OptionGrid`). Any `overflow-*` wrapper around them clips that, so give it padding (and a matching negative margin to keep alignment).
+
+## F48 Random pixel avatar for new Players
+Issue #17
+- [x] A new Player (signed in or Guest) gets a random avatar from `AVATARS` instead of always the anglerfish
+- [x] Existing Players keep their avatar; no migration
+
+Entry points: `randomAvatar()` in `lib/social/types.ts`, used by `ensurePlayer` (`lib/auth.ts`), `ensureProfile` (`lib/social/profile.ts`) and `ensureGuest` (`lib/guest.ts`)
+
+Notes for others:
+- The `players.avatar` column default is still `'anglerfish'`. Any new code that first inserts a `players` row for a real Player should pass `avatar: randomAvatar()`.
+- Players who signed up before this all still have the anglerfish; there was no backfill.

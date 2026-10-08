@@ -1,8 +1,8 @@
 # #17 Random pixel avatar for new Players
 
-Status: in-review
+Status: done
 Branch: feat/17-random-avatar
-Updated: 2026-10-08 13:55
+Updated: 2026-10-08 14:10
 
 ## Goal
 New Players all got the `anglerfish` avatar (the `players.avatar` column default). Give each new Player a random one instead.
@@ -13,7 +13,7 @@ New Players all got the `anglerfish` avatar (the `players.avatar` column default
 - Unit test in `components/site/avatar-ids.test.ts`; DB test in `lib/social/social.db.test.ts` (new Players get varied valid avatars, existing ones are untouched).
 
 ## Next steps
-1. User review, then PR (tick FEATURES.md, set this to done, `Closes #17`).
+1. None. Reviewed and opened as a PR.
 
 ## Decisions & gotchas
 - Chosen in app code, not as a DB default: `AVATARS` says adding an avatar needs no migration, and a SQL default would have to repeat the list.
