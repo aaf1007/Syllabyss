@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { sql } from "./db";
 import type { Db } from "./progress";
+import { randomAvatar } from "./social/types";
 
 // Guests (#8): signed-out visitors who play today's Daily Dive. A Guest is a players row with
 // is_guest = true, found through an httpOnly cookie holding its id. The id is a random UUID, so
@@ -25,7 +26,7 @@ export async function ensureGuest(): Promise<string> {
   const existing = await getGuest();
   if (existing) return existing;
   const id = `guest_${randomUUID()}`;
-  await sql`insert into players (id, is_guest) values (${id}, true)`;
+  await sql`insert into players (id, is_guest, avatar) values (${id}, true, ${randomAvatar()})`;
   (await cookies()).set(GUEST_COOKIE, id, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

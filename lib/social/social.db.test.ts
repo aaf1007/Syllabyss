@@ -15,6 +15,7 @@ import {
 } from "./friends";
 import { courseLeaderboard, gameLeaderboard, weeklyXp } from "./leaderboards";
 import { ensureProfile, myProfile, profileCard, profileFor, SYSTEM_PLAYER_ID, updateProfile } from "./profile";
+import { AVATARS } from "./types";
 import { awardXp, onDailyPlayed, onRunFinished, onTopicPassed, streakFor, totalXp } from "./xp";
 
 type Tx = postgres.TransactionSql;
@@ -88,6 +89,21 @@ describe.skipIf(!process.env.DATABASE_URL)("social", () => {
         expect(await ensureProfile(a, null, tx)).toBe(`dup_${tag}`); // stable once set
         const [row] = await tx`select display_name, image_url, avatar, use_photo from players where id = ${a}`;
         expect(row).toEqual({ display_name: `Dup ${tag}`, image_url: "https://img.example/a.png", avatar: "anglerfish", use_photo: false });
+      }));
+
+    it("gives a new Player a random avatar and leaves an existing one alone (#17)", () =>
+      rolledBack(async (tx) => {
+        const fresh = Array.from({ length: 24 }, () => `test_f21_${randomUUID()}`);
+        for (const id of fresh) await ensureProfile(id, null, tx);
+        const rows = await tx<{ avatar: string }[]>`select avatar from players where id in ${tx(fresh)}`;
+        for (const r of rows) expect(AVATARS).toContain(r.avatar);
+        expect(new Set(rows.map((r) => r.avatar)).size).toBeGreaterThan(1); // 24 all equal: (1/16)^23
+
+        const old = `test_f21_${randomUUID()}`;
+        await tx`insert into players (id, avatar) values (${old}, 'crab')`;
+        await ensureProfile(old, null, tx);
+        const [row] = await tx`select avatar from players where id = ${old}`;
+        expect(row.avatar).toBe("crab");
       }));
 
     it("edits the profile and refuses a taken username", () =>

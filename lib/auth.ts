@@ -2,6 +2,7 @@ import "server-only";
 import { auth } from "@clerk/nextjs/server";
 import { sql } from "./db";
 import { getGuest } from "./guest";
+import { randomAvatar } from "./social/types";
 
 // proxy.ts doesn't gate routes, so one of these is the auth check. Call it first in every
 // page, server action and route handler that touches Player data, then filter every query
@@ -60,5 +61,5 @@ export async function requirePlayerOrGuest(): Promise<string> {
 
 // Not cached per process: a shared dev DB can be reset under a running server.
 async function ensurePlayer(id: string) {
-  await sql`insert into players (id) values (${id}) on conflict (id) do nothing`;
+  await sql`insert into players (id, avatar) values (${id}, ${randomAvatar()}) on conflict (id) do nothing`;
 }
