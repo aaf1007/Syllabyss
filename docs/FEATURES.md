@@ -55,6 +55,7 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F42 | CI/CD: GitHub Actions CI and gated Render deploy | Platform | F12 | #1 | done |
 | F43 | CI: CodeQL, dependency review, Docker build check, actionlint | Platform | F42 | #3 | done |
 | F44 | Landing: all six Game Modes in an even grid | Frontend | F19 | #6 | done |
+| F45 | Delete a Module | Frontend | F08 | #9 | done |
 | F46 | Guest Daily Dive: today's puzzle signed out, off the Leaderboard | Platform | F23, F28 | #8 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
@@ -797,6 +798,19 @@ Entry points: `ModesShowcase` in `components/landing/Sections.tsx`
 
 Notes for others:
 - A new Mode shows on the landing page once it is in `MODE_UI` (`lib/ui/modes.ts`); `MODE_PITCH` is typed by `ModeUiId`, so typecheck fails until it has a pitch.
+
+## F45 Delete a Module
+Issue #9 (aaf1007/Syllabyss)
+- [x] "Delete Module" on the Module page, behind a type-the-name confirm
+- [x] `DELETE /api/modules/[moduleId]`: one owner-checked statement; cascades to Source Documents, pages, Games, Runs, and deletes the Module's `guess_events`
+- [x] XP, streaks and badges stay; a Module that backs a Course is never deleted
+
+Entry points: `deleteModule` in `app/modules/_lib/delete-module.ts`, `app/api/modules/[moduleId]/route.ts`, the `module` confirm in `ModuleWorkspace`
+
+Notes for others:
+- New tables hanging off a Module should `ON DELETE CASCADE`; anything without an FK (like `guess_events`) has to be added to `deleteModule` by hand.
+- `Modal` focuses a `[data-autofocus]` element if the dialog has one.
+- Figures (#7) will need their R2 objects deleted after this commits.
 
 ## F46 Guest Daily Dive: today's puzzle signed out, off the Leaderboard
 Issue #8 (aaf1007/Syllabyss)
