@@ -34,9 +34,6 @@ export function SiteFooter() {
         <div>
           <Logo size="sm" />
           <p className="mt-3 max-w-xs text-sm text-muted">Turn your notes into games. Rarer answers sink deeper.</p>
-          <p className="mt-4 text-xs text-faint">
-            Built at StormHacks 2026 with Tiger Data (Postgres + TimescaleDB), Google Gemini and Clerk.
-          </p>
         </div>
         {COLUMNS.map((c) => (
           <div key={c.title}>
@@ -54,7 +51,7 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 border-t border-border/60 px-4 py-4 text-xs text-faint sm:px-6">
-        <span>© 2026 SYLLABYSS · a StormHacks 2026 project</span>
+        <span>© 2026 SYLLABYSS</span>
         <span className="flex items-center gap-1.5" title="There's a secret up there somewhere">
           <PixelIcon name="fish" size={14} /> ↑ ↑ ↓ ↓ ← → ← → B A
         </span>

@@ -1,5 +1,5 @@
 // Vancouver calendar days and the Streak. Pure.
-// A "day" here is a YYYY-MM-DD string in America/Vancouver (StormHacks is at SFU), the same
+// A "day" here is a YYYY-MM-DD string in America/Vancouver, the same
 // days the continuous aggregates bucket by.
 import type { Streak } from "./types";
 
