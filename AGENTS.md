@@ -8,6 +8,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+# Discuss before you build
+
+When asked to fix a bug or add a feature, your first deliverable is a proposal, not code, however small the change. Read enough to understand the problem, talk the approach through with the user, and wait for their explicit go before editing any file. A go covers that proposal; if the approach changes mid-way, propose again.
+
+- **Bug:** the root cause with evidence (file:line, repro steps), the proposed fix, and alternatives. If the cause is unclear, diagnose first: reproduce the bug and pin down the cause before proposing a fix.
+- **Feature:** the approach, the files and shared contracts it touches, and the open decisions. Ask the user about each decision that is theirs: behaviour, UX, scope, trade-offs.
+- Match the planning to the open question, using your planning skills where you have them: grill the user on a design with several unresolved choices, prototype a UI or state model they need to see, design the module interface when a seam moves, and use plan mode (or a written plan) for multi-file work.
+
 # Team coordination (read every session, follow without being asked)
 
 Several people with different agents build this repo in parallel. Full protocol: `docs/agents/coordination.md`. In short:
