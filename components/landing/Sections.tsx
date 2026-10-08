@@ -5,7 +5,7 @@ import { SignUpButton } from "@clerk/nextjs";
 import {
   Button, Chip, Heatmap, Mascot, ModeTile, PixelAvatar, PixelIcon, StreakFlame, TiltCard, type HeatDay, type PixelIconName,
 } from "@/components/ui";
-import { MODE_UI, type ModeUiId } from "@/lib/ui/modes";
+import { MODE_UI, MODE_UI_LIST, type ModeUiId } from "@/lib/ui/modes";
 import { addDays } from "@/lib/social/days";
 import { NextDailyCountdown } from "./Countdown";
 import { SHARE_SQUARES, type DailyTeaser } from "./daily-teaser";
@@ -62,7 +62,7 @@ export function HowItWorks() {
 
 // ── 3. Game Modes ────────────────────────────────────────────────────────────
 
-const SHOWCASE: ModeUiId[] = ["dive", "apogee", "leap", "pairs", "blitz"];
+const COUNT_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 
 const MODE_PITCH: Record<ModeUiId, string> = {
   dive: "Seven prompts, any answer that's in your notes. The rarer it is, the deeper you sink.",
@@ -70,7 +70,7 @@ const MODE_PITCH: Record<ModeUiId, string> = {
   leap: "Multiple choice, one try each. Get it right and your hopper jumps to the next island.",
   pairs: "Match each term to its definition, two boards against a shared clock.",
   blitz: "Sixty seconds of true or false. Build a combo, keep the beat.",
-  arena: "",
+  arena: "Ten targets, one right answer each. Aim, fire, and a wrong hit costs you three seconds.",
 };
 
 export function ModesShowcase() {
@@ -78,13 +78,13 @@ export function ModesShowcase() {
   const m = MODE_UI[mode];
   return (
     <Surface zone="Twilight zone" icon="jelly" labelledBy="modes-title" className="pb-24">
-      <SectionTitle id="modes-title" kicker="Game Modes" title="Five ways to play the same notes">
+      <SectionTitle id="modes-title" kicker="Game Modes" title={`${COUNT_WORDS[MODE_UI_LIST.length] ?? MODE_UI_LIST.length} ways to play the same notes`}>
         Hover a tile to watch it play. Pick one to read the rules.
       </SectionTitle>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {SHOWCASE.map((id, n) => (
-          <div key={id} data-catch style={i(n + 1)} className={n === 4 ? "col-span-2 sm:col-span-1" : undefined}>
-            <ModeTile mode={id} selected={id === mode} onSelect={setMode} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {MODE_UI_LIST.map(({ id }, n) => (
+          <div key={id} data-catch style={i(n + 1)}>
+            <ModeTile mode={id} selected={id === mode} onSelect={setMode} className="h-full" />
           </div>
         ))}
       </div>

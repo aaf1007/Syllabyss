@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-/** Close on Escape, trap Tab inside, restore focus on close, lock page scroll. */
+/** Close on Escape, trap Tab inside, restore focus on close, lock page scroll. Focuses `[data-autofocus]` if present. */
 function useDialog(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -30,7 +30,8 @@ function useDialog(open: boolean, onClose: () => void) {
           'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])',
         ) ?? [],
       );
-    requestAnimationFrame(() => (focusables()[0] ?? ref.current)?.focus());
+    // A field marked data-autofocus wins over the first focusable (usually the close button).
+    requestAnimationFrame(() => (ref.current?.querySelector<HTMLElement>("[data-autofocus]") ?? focusables()[0] ?? ref.current)?.focus());
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();

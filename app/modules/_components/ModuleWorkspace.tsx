@@ -34,7 +34,7 @@ type Props = {
   map?: ReactNode;
 };
 
-type Confirm = { kind: "doc"; doc: DocRow } | { kind: "game"; game: GameRow } | null;
+type Confirm = { kind: "doc"; doc: DocRow } | { kind: "game"; game: GameRow } | { kind: "module" } | null;
 
 /** The on-screen match (Next keeps recently visited pages mounted but hidden). */
 const visibleEl = (selector: string) =>
@@ -53,6 +53,7 @@ export function ModuleWorkspace({ module: mod, initialDocuments, initialGames, p
   const [newGameOpen, setNewGameOpen] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [busy, setBusy] = useState(false);
+  const [typedName, setTypedName] = useState("");
   const [removing, setRemoving] = useState<Set<string>>(new Set());
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
   const deleted = useRef(new Set<string>());
@@ -238,7 +239,13 @@ export function ModuleWorkspace({ module: mod, initialDocuments, initialGames, p
     if (!confirm) return;
     setBusy(true);
     try {
-      if (confirm.kind === "doc") {
+      if (confirm.kind === "module") {
+        await api(`/api/modules/${mod.id}`, { method: "DELETE" });
+        setConfirm(null);
+        toast({ title: `Deleted ${mod.name}`, tone: "info", icon: "cross" });
+        router.push("/modules");
+        router.refresh();
+      } else if (confirm.kind === "doc") {
         const d = confirm.doc;
         await api(`/api/documents/${d.id}`, { method: "DELETE" });
         deleted.current.add(d.id);
@@ -365,6 +372,19 @@ export function ModuleWorkspace({ module: mod, initialDocuments, initialGames, p
         />
       </div>
 
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setTypedName("");
+            setConfirm({ kind: "module" });
+          }}
+        >
+          Delete Module
+        </Button>
+      </div>
+
       <Portal>
         <NewGameDialog
           open={newGameOpen}
@@ -378,24 +398,58 @@ export function ModuleWorkspace({ module: mod, initialDocuments, initialGames, p
           open={!!confirm}
           onClose={() => !busy && setConfirm(null)}
           title={
-            confirm?.kind === "doc" ? `Delete ${confirm.doc.filename}?` : confirm ? `Delete ${confirm.game.title}?` : ""
+            confirm?.kind === "module"
+              ? `Delete ${mod.name}?`
+              : confirm?.kind === "doc"
+                ? `Delete ${confirm.doc.filename}?`
+                : confirm
+                  ? `Delete ${confirm.game.title}?`
+                  : ""
           }
           footer={
             <>
               <Button variant="ghost" onClick={() => setConfirm(null)} disabled={busy}>
                 Keep it
               </Button>
-              <Button variant="danger" onClick={confirmDelete} disabled={busy}>
+              <Button
+                variant="danger"
+                onClick={confirmDelete}
+                disabled={busy || (confirm?.kind === "module" && typedName.trim() !== mod.name)}
+              >
                 {busy ? "Deleting…" : "Delete"}
               </Button>
             </>
           }
         >
-          <p className="text-muted">
-            {confirm?.kind === "doc"
-              ? "Its parsed pages go with it. You can upload the file again any time."
-              : "Its Runs, Personal Best and Mastery go with it. This can't be undone."}
-          </p>
+          {confirm?.kind === "module" ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-muted">
+                Its {docs.length} file{docs.length === 1 ? "" : "s"} and {games.length} Game{games.length === 1 ? "" : "s"} go
+                with it, with their Runs, Personal Bests and Mastery. XP you&apos;ve earned stays. This can&apos;t be undone.
+              </p>
+              <label htmlFor="delete-module-name" className="text-sm text-muted">
+                Type <span className="font-semibold text-text">{mod.name}</span> to confirm
+              </label>
+              <input
+                id="delete-module-name"
+                data-autofocus
+                value={typedName}
+                disabled={busy}
+                autoComplete="off"
+                onChange={(e) => setTypedName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && typedName.trim() === mod.name) confirmDelete();
+                }}
+                className="h-11 w-full rounded-sm border border-border-strong bg-bg-2 px-3 text-text placeholder:text-faint focus:border-danger focus:outline-none"
+              />
+            </div>
+          ) : (
+            <p className="text-muted">
+              {confirm?.kind === "doc"
+                ? "Its parsed pages go with it. You can upload the file again any time."
+                : "Its Runs, Personal Best and Mastery go with it. This can't be undone."}
+            </p>
+          )}
         </Modal>
 
       </Portal>
