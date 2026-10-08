@@ -1,12 +1,14 @@
 import "server-only";
 import type postgres from "postgres";
 import { sql } from "@/lib/db";
+import { isGuest } from "@/lib/guest";
 import { createRun } from "@/lib/runs/run-engine";
 import { computeStreak } from "@/lib/social/days";
 import { gameLeaderboard } from "@/lib/social/leaderboards";
 import type { LeaderboardScope } from "@/lib/social/types";
 import { streakFor } from "@/lib/social/xp";
 import { addDays, isDay, nextVancouverMidnight, vancouverDay } from "./days";
+import { runTiers, wouldPlace } from "./record";
 import { METRES_PER_POINT, shareText } from "./share";
 import type {
   DailyArchiveEntry, DailyLeaderboardResponse, DailyResult, DailyRunResponse, DailyToday, ShareTiers,
@@ -80,7 +82,34 @@ async function dailyStreak(db: Db, playerId: string, today: string) {
   return computeStreak(rows.map((r) => r.day), today);
 }
 
-/** GET /api/daily/today. `playerId` null = signed out (the landing teaser): `me` is null. */
+const NO_STREAK = { current: 0, longest: 0, playedToday: false };
+
+/** A Guest's card (#8): their one dive on today's puzzle, and where it would have placed. */
+async function guestMe(db: Db, guestId: string, puzzle: DailyPuzzle, day: string): Promise<NonNullable<DailyToday["me"]>> {
+  const [[done], [inProgress]] = await Promise.all([
+    db<{ run_id: string; score: number; finished_at: Date }[]>`
+      select id as run_id, score, finished_at from runs
+       where player_id = ${guestId} and game_id = ${puzzle.game_id} and status = 'finished'
+       order by finished_at limit 1`,
+    db<{ id: string }[]>`
+      select id from runs where player_id = ${guestId} and game_id = ${puzzle.game_id} and status = 'in_progress'
+       order by started_at desc limit 1`,
+  ]);
+  const [tiers, place] = done
+    ? await Promise.all([runTiers(db, done.run_id), wouldPlace(db, day, done.score, done.finished_at)])
+    : [null, null];
+  return {
+    status: done ? "played" : inProgress ? "in_progress" : "not_played",
+    runId: done?.run_id ?? inProgress?.id ?? null,
+    result: done && tiers ? toResult(puzzle.number, { ...done, tiers }) : null,
+    streak: NO_STREAK,
+    dailyStreak: NO_STREAK,
+    guest: true,
+    wouldPlace: place,
+  };
+}
+
+/** GET /api/daily/today. `playerId` null = signed out (the landing teaser): `me` is null. A Guest gets guestMe(). */
 export async function dailyToday(playerId: string | null, now = new Date(), db: Db = sql): Promise<DailyToday | null> {
   const day = vancouverDay(now);
   const puzzle = await getDailyPuzzle(day, now, db);
@@ -91,7 +120,9 @@ export async function dailyToday(playerId: string | null, now = new Date(), db: 
   ]);
 
   let me: DailyToday["me"] = null;
-  if (playerId) {
+  if (playerId && (await isGuest(playerId, db))) {
+    me = await guestMe(db, playerId, puzzle, day);
+  } else if (playerId) {
     const [[result], [inProgress], streak, daily] = await Promise.all([
       db<ResultRow[]>`
         select run_id, score, finished_at, tiers from daily_results where player_id = ${playerId} and day = ${day}`,
@@ -107,6 +138,8 @@ export async function dailyToday(playerId: string | null, now = new Date(), db: 
       result: result ? toResult(puzzle.number, result) : null,
       streak,
       dailyStreak: daily,
+      guest: false,
+      wouldPlace: null,
     };
   }
   return {
@@ -127,20 +160,26 @@ export async function dailyToday(playerId: string | null, now = new Date(), db: 
 /**
  * POST /api/daily/today/run: resumes the Player's in-progress Run on today's puzzle, else
  * starts one (abandoning any other in-progress Run, like every new Run). The first Run of
- * the day to finish is the Counted Run; once that's in, new Runs are practice.
+ * the day to finish is the Counted Run; once that's in, new Runs are practice. A Guest (#8)
+ * gets one finished dive a day and is never counted.
  */
 export async function startTodayRun(tx: Tx, playerId: string, now = new Date()): Promise<DailyRunResponse> {
   const day = vancouverDay(now);
   const puzzle = await getDailyPuzzle(day, now, tx);
   if (!puzzle) throw new DailyError(404, "There's no Daily Dive today");
-  const [[counted], [inProgress]] = await Promise.all([
+  const [[counted], [inProgress], guest] = await Promise.all([
     tx<{ run_id: string }[]>`select run_id from daily_results where player_id = ${playerId} and day = ${day}`,
     tx<{ id: string }[]>`
       select id from runs where player_id = ${playerId} and game_id = ${puzzle.game_id} and status = 'in_progress'
        order by started_at desc limit 1`,
+    isGuest(playerId, tx),
   ]);
-  const base = { counted: !counted, number: puzzle.number, day };
+  const base = { counted: !guest && !counted, guest, number: puzzle.number, day };
   if (inProgress) return { runId: inProgress.id, resumed: true, ...base };
+  if (guest) {
+    const [done] = await tx`select 1 from runs where player_id = ${playerId} and game_id = ${puzzle.game_id} and status = 'finished'`;
+    if (done) throw new DailyError(409, "Guests get one Daily Dive a day. Sign up to dive again and get on the leaderboard.");
+  }
   const { runId } = await createRun(tx, playerId, puzzle.game_id, now);
   return { runId, resumed: false, ...base };
 }

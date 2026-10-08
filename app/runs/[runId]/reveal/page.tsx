@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { requirePlayer } from "@/lib/auth";
+import { requirePlayerOrGuest } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { getReveal, RunError } from "@/lib/runs/run-engine";
 import { getDiveHistory, getRunContext } from "../../queries";
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Results · SYLLABYSS" };
 // an unfinished Run goes back to its Run screen. The Mode's screen is picked in mode-screens.tsx.
 export default async function RevealPage(props: PageProps<"/runs/[runId]/reveal">) {
   const { runId } = await props.params;
-  const playerId = await requirePlayer();
+  const playerId = await requirePlayerOrGuest();
 
   let reveal;
   try {

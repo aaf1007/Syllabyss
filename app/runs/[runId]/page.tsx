@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { requirePlayer } from "@/lib/auth";
+import { requirePlayerOrGuest } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { getRunState, RunError } from "@/lib/runs/run-engine";
 import { getRunContext } from "../queries";
@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Run · SYLLABYSS" };
 // hands it to the Game Mode's client screen (mode-screens.tsx).
 export default async function RunPage(props: PageProps<"/runs/[runId]">) {
   const { runId } = await props.params;
-  const playerId = await requirePlayer();
+  const playerId = await requirePlayerOrGuest();
 
   let state;
   try {

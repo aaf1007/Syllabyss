@@ -1,6 +1,7 @@
 import "server-only";
 import { assertTopicUnlocked, recordTopicRun, topicReveal } from "@/lib/courses/progress";
 import { dailyReveal, recordDailyRun } from "@/lib/daily/record";
+import { isGuest } from "@/lib/guest";
 import { onRunFinished } from "@/lib/social/xp";
 import { isDiveFamily, MODES, type ModeId } from "@/lib/modes";
 import { passedRun } from "@/lib/modes/rules";
@@ -148,8 +149,9 @@ async function play<T>(tx: Tx, run: RunRow, command: () => Promise<T>): Promise<
   return result;
 }
 
-/** Once per finished Run (never an abandoned one): XP and Badges, the Course Topic, the Daily. */
+/** Once per finished Run (never an abandoned one): XP and Badges, the Course Topic, the Daily. Not for Guests. */
 async function afterFinish(tx: Tx, run: RunRow) {
+  if (await isGuest(run.player_id, tx)) return;
   const summary = await engineFor(run.mode).summary(tx, run);
   await onRunFinished(run.player_id, { runId: run.id, ...summary }, tx);
   await recordTopicRun(tx, run.player_id, { id: run.id, gameId: run.game_id, finishedAt: run.finished_at! }, summary);

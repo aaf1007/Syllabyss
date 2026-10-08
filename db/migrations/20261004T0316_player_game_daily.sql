@@ -2,7 +2,7 @@
 -- A continuous aggregate over the guess_events hypertable: TimescaleDB keeps it up to date in
 -- the background, so the chart reads a few rows per day instead of every guess.
 --
--- * Days are Vancouver days (StormHacks is at SFU). UTC days would split an evening of play
+-- * Days are Vancouver days. UTC days would split an evening of play
 --   in two at 5 pm.
 -- * materialized_only = false (real-time aggregation): rows newer than the last refresh are
 --   computed from guess_events at query time, so a Run shows up on the chart right away.

@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import { clockParts, crowdCaption, dayLabel, findRateLookup, histogramPoints, lumenLine, metres } from "./format";
 
 const streak = (current: number) => ({ current, longest: current, playedToday: false });
-const me = (status: "not_played" | "in_progress" | "counted", daily = 0) => ({
+const me = (status: "not_played" | "in_progress" | "counted" | "played", daily = 0, guest = false, wouldPlace: number | null = null) => ({
   status,
   runId: null,
   result: null,
   streak: streak(0),
   dailyStreak: streak(daily),
+  guest,
+  wouldPlace,
 });
 
 describe("dayLabel / metres", () => {
@@ -36,6 +38,9 @@ describe("crowdCaption", () => {
     expect(crowdCaption({ players: 12, betterThanPct: 40 }, false)).toBe("PRACTICE · WOULD BEAT 40% OF TODAY'S PLAYERS");
     expect(crowdCaption({ players: 1, betterThanPct: 0 }, true)).toBe("YOU'RE THE FIRST DIVER TODAY");
     expect(crowdCaption({ players: 0, betterThanPct: null }, false)).toBe("NOBODY HAS COUNTED A DIVE YET TODAY");
+  });
+  it("drops the practice label for a Guest's dive", () => {
+    expect(crowdCaption({ players: 12, betterThanPct: 40 }, false, true)).toBe("WOULD BEAT 40% OF TODAY'S PLAYERS");
   });
 });
 
@@ -71,7 +76,9 @@ describe("findRateLookup", () => {
 
 describe("lumenLine", () => {
   it("covers signed out, each status and the crowd", () => {
-    expect(lumenLine({ theme: "Computing", players: 0, me: null }, null)).toMatch(/Sign in/);
+    expect(lumenLine({ theme: "Computing", players: 0, me: null }, null)).toMatch(/no account needed/);
+    expect(lumenLine({ theme: "Computing", players: 0, me: me("not_played", 0, true) }, null)).toMatch(/no account needed/);
+    expect(lumenLine({ theme: "Computing", players: 4, me: me("played", 0, true, 2) }, 60)).toMatch(/#2 today.*Sign up/);
     expect(lumenLine({ theme: "Computing", players: 0, me: me("not_played") }, null)).toMatch(/Computing/);
     expect(lumenLine({ theme: "Computing", players: 0, me: me("not_played", 3) }, null)).toMatch(/3-day/);
     expect(lumenLine({ theme: "Computing", players: 0, me: me("in_progress") }, null)).toMatch(/still down there/);

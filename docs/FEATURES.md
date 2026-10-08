@@ -56,7 +56,8 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F43 | CI: CodeQL, dependency review, Docker build check, actionlint | Platform | F42 | #3 | done |
 | F44 | Landing: all six Game Modes in an even grid | Frontend | F19 | #6 | done |
 | F45 | Delete a Module | Frontend | F08 | #9 | done |
-| F46 | Security hardening: headers, CSP, rate limits, account deletion, privacy and terms | Platform | F12 | #5 | done |
+| F46 | Guest Daily Dive: today's puzzle signed out, off the Leaderboard | Platform | F23, F28 | #8 | done |
+| F47 | Fix: Dive odd-one-out tiles cut off at the bottom | Frontend | F09, F33 | #15 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
 
@@ -670,7 +671,7 @@ Issue #77
 - [x] Clerk elements reuse the site recipes: yellow `.px-btn` primary action, `.px-btn` social buttons, `.px-frame` card with a hard drop, 2px input border that turns signal-cyan on focus
 - [x] `cssLayerName: "clerk"` and `@layer theme, base, clerk, components, utilities` so Tailwind preflight can't break Clerk and our classes win
 - [x] Checked in a production build: `/sign-in` page and the nav's sign-in modal
-- [ ] Application name in the Clerk dashboard set to SYLLABYSS (the title says "Sign in to StormHacks 2026" until then; dashboard only, needs human)
+- [ ] Application name in the Clerk dashboard set to SYLLABYSS (the title says "Sign in to Syllabyss" until then; dashboard only, needs human)
 
 Entry points: `clerkAppearance` in `lib/ui/clerk-appearance.ts`; the `.cl-*` rules next to `.px-frame` in `app/globals.css`
 
@@ -812,20 +813,25 @@ Notes for others:
 - `Modal` focuses a `[data-autofocus]` element if the dialog has one.
 - Figures (#7) will need their R2 objects deleted after this commits.
 
-## F46 Security hardening: headers, CSP, rate limits, account deletion, privacy and terms
-Issue #5 (aaf1007/Syllabyss)
-- [x] Security headers on every response (HSTS, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP), no `x-powered-by`
-- [x] Content-Security-Policy, Report-Only for now; violations logged as `[csp]` lines by `/api/csp-report`
-- [x] Rate limits on uploads, Game generation, Sonar and page notes: per Player per minute and per day, plus a site-wide daily cap
-- [x] Account deletion from `/settings` (all Player data, then the Clerk user) and the Clerk `user.deleted` webhook
-- [x] `/privacy` and `/terms`, linked from the footer, sign-up and Settings
-- [x] `docs/security.md`: what the code does and the manual checklist (Clerk, Render env, AI spend caps, DNS, domain reputation)
+## F46 Guest Daily Dive: today's puzzle signed out, off the Leaderboard
+Issue #8 (aaf1007/Syllabyss)
+- [x] `players.is_guest` and a Guest cookie, created only when a signed-out visitor starts today's dive
+- [x] Guests play the Run like anyone else; one finished dive per day (409 after)
+- [x] No XP, streaks, badges, Daily results or crowd stats for Guests; the global Game leaderboard excludes them
+- [x] Today card and Reveal: "You'd be #N", better-than %, share text, sign-up CTA; no Sonar for Guests
 
-Entry points: `lib/security/headers.ts` (`CSP_ENFORCE`), `lib/rate-limit.ts` (`rateLimit`, `LIMITS`), `lib/account/delete.ts` (`deletePlayerData`), `app/api/me/account/route.ts`, `app/api/webhooks/clerk/route.ts`, `app/settings/`, `app/privacy/`, `app/terms/`
+Entry points: `lib/guest.ts` (`getGuest`, `ensureGuest`, `isGuest`), `requirePlayerOrGuest()` in `lib/auth.ts`, `runRoute(fn, { guests: true })` in `lib/runs/http.ts`, `dailyRoute("guest" | "optional")` in `lib/daily/http.ts`, `guestMe()` in `lib/daily/queries.ts`, `wouldPlace()` in `lib/daily/record.ts`
 
 Notes for others:
-- A new route that calls Gemini or Claude should call `rateLimit(playerId, "<action>")` first and return `rateLimitedResponse(limit)`; add the action to `LIMITS`.
-- Loading a new third-party script, image, font or API host in the browser: add it to the CSP in `lib/security/headers.ts`. The headers are built at build time.
-- Sending user data to a new service: add it to `/privacy` in the same PR.
-- A new table with Player data needs `ON DELETE CASCADE` from `players`; a hypertable or anything without an FK has to be added to `deletePlayerData` by hand.
-- Needs `CLERK_WEBHOOK_SIGNING_SECRET` in production and the `rate_limits` migration approved on deploy.
+- A Guest is a `players` row with `is_guest = true` and no username, so Profiles, search and friends never see it. Anything new that reads `runs` or `players` for a public list must exclude `is_guest`.
+- Only the `/api/runs/[runId]/*` routes and the Run/Reveal pages accept Guests; every other route stays sign-in only. Opt a new route in with `runRoute(fn, { guests: true })` only if a Guest's own Run needs it.
+- Guest sign-up doesn't carry the dive over. Old Guest rows are never cleaned up and Guest creation isn't rate-limited yet.
+
+## F47 Fix: Dive odd-one-out tiles cut off at the bottom
+Issue #15
+- [x] The Dive play area pads its scroll wrapper so the tiles' ring and drop shadow aren't clipped (odd-one-out grid and put-in-order list)
+
+Entry points: the play area in `components/modes/dive/DiveRunScreen.tsx`
+
+Notes for others:
+- `OptionGrid` and `OrderList` draw their borders with `box-shadow`, which reaches 4px past each tile (8px below for `OptionGrid`). Any `overflow-*` wrapper around them clips that, so give it padding (and a matching negative margin to keep alignment).

@@ -1,6 +1,0 @@
-/* Depth-world sprites (themes/ocean.js) and camera-dependent stage settings for Dive. */
-.boat { position: absolute; left: 22%; top: 0; will-change: transform; }
-.boat svg { display: block; animation: bob 3s var(--ease-io) infinite; }
-body[data-camera=descent] .vignette, body[data-camera=deep] .vignette { opacity: .6; }
-body[data-world=site] .boat, body[data-world=site] .mascot { display: none; }
-@media (max-width: 600px) { .boat { left: 6%; } .boat svg { width: 96px; height: auto; } body[data-theme=dive] .mascot svg { width: 44px; height: auto; } }

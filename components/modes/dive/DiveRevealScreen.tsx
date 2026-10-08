@@ -3,6 +3,7 @@
 // Spec: docs/design/modes/dive.md §7. A Daily Dive Run (F23/F28) adds today's crowd (the
 // distribution of today's players, "% found" per Answer) and the Daily block (share, counted or
 // practice, today's leaderboard).
+import { SignUpButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { crowdCaption, findRateLookup, histogramPoints, metres } from "@/components/daily/format";
@@ -42,20 +43,21 @@ export function personalCaption(score: number, scores: number[]): string {
 }
 
 /** The curve from the Daily's crowd: today's counted scores, weighted by bucket. */
-function crowdDistribution(crowd: CrowdReveal, counted: boolean) {
+function crowdDistribution(crowd: CrowdReveal, counted: boolean, guest: boolean) {
   const { values, weights } = histogramPoints(crowd);
   const players = `${crowd.players.toLocaleString("en-US")} ${crowd.players === 1 ? "PLAYER" : "PLAYERS"} TODAY`;
   return {
     values,
     weights,
     minValues: 1,
-    caption: crowdCaption(crowd, counted),
+    caption: crowdCaption(crowd, counted, guest),
     subcaption: crowd.medianScore === null ? players : `${players} · MEDIAN ${metres(crowd.medianScore)}`,
   };
 }
 
-/** DAILY #N: counted or practice, the share grid and the copy button. */
+/** DAILY #N: counted, practice or a Guest's dive (#8), the share grid and the copy button. */
 function DailyBlock({ daily }: { daily: DailyReveal }) {
+  const label = daily.counted ? "✓ COUNTED" : daily.guest ? "GUEST" : "PRACTICE";
   return (
     <section className="dv-panel w-full px-4 py-4" aria-label={`Daily Dive #${daily.number}`} style={{ animation: "rise-in .5s var(--ease-out) .3s both" }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -67,7 +69,7 @@ function DailyBlock({ daily }: { daily: DailyReveal }) {
             boxShadow: `inset 0 0 0 1px ${daily.counted ? "var(--success)" : "var(--caution)"}`,
           }}
         >
-          {daily.counted ? "✓ COUNTED" : "PRACTICE"}
+          {label}
         </span>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -77,7 +79,9 @@ function DailyBlock({ daily }: { daily: DailyReveal }) {
       <p className="mt-3 font-sans text-[13px] text-muted">
         {daily.counted
           ? "This dive is on today's board. Replays from here are practice."
-          : "Practice dive: your counted result stays on the board. Practice still finds new answers."}
+          : daily.guest
+            ? `${daily.wouldPlace ? `You'd be #${daily.wouldPlace} on today's board. ` : ""}Guest dives stay off the leaderboard: sign up and your next dives count.`
+            : "Practice dive: your counted result stays on the board. Practice still finds new answers."}
       </p>
     </section>
   );
@@ -127,7 +131,33 @@ export function DiveRevealScreen({ reveal, context, history, crowd, title }: Pro
   };
 
   const isToday = daily ? daily.day === vancouverDay(new Date()) : false;
-  const dailyActions = daily && (
+  const dailyActions = daily?.guest ? (
+    <div className="flex flex-col items-center gap-3">
+      <SignUpButton mode="modal" forceRedirectUrl="/daily">
+        <button
+          type="button"
+          className="px-8 py-3 font-hud text-[22px] tracking-[0.2em] text-text transition hover:-translate-y-0.5 active:translate-y-[2px] sm:text-[24px]"
+          style={{
+            background: "color-mix(in srgb, var(--accent) 35%, #12081a)",
+            boxShadow: "inset 0 0 0 3px var(--accent), 0 0 22px color-mix(in srgb, var(--accent) 40%, transparent), 0 5px 0 #3b0f22",
+            animation: "btn-bob 2.4s ease-in-out infinite",
+          }}
+        >
+          SIGN UP TO GET ON THE BOARD ▸
+        </button>
+      </SignUpButton>
+      <button
+        type="button"
+        onClick={() => {
+          sfx.click();
+          router.push("/daily#leaderboard");
+        }}
+        className="font-hud text-[20px] tracking-[0.2em] text-signal transition hover:text-accent"
+      >
+        SEE TODAY&apos;S LEADERBOARD ▸
+      </button>
+    </div>
+  ) : daily && (
     <div className="flex flex-col items-center gap-3">
       <button
         type="button"
@@ -158,7 +188,7 @@ export function DiveRevealScreen({ reveal, context, history, crowd, title }: Pro
         prompts={reveal.prompts}
         distribution={
           daily && dailyCrowd
-            ? crowdDistribution(dailyCrowd, daily.counted)
+            ? crowdDistribution(dailyCrowd, daily.counted, daily.guest)
             : (crowd ?? {
                 values: history.scores,
                 caption: personalCaption(reveal.score, history.scores),
@@ -176,7 +206,7 @@ export function DiveRevealScreen({ reveal, context, history, crowd, title }: Pro
         notice={
           <>
             {error && <p className="font-hud text-[18px] text-danger">{error}</p>}
-            <AskSonarButton size="sm" message="What should I learn from this run?" />
+            {!daily?.guest && <AskSonarButton size="sm" message="What should I learn from this run?" />}
           </>
         }
         onBack={() => router.push(daily ? "/daily" : links.backHref)}

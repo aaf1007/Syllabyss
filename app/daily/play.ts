@@ -42,7 +42,8 @@ export function usePlay() {
     today: () =>
       go("today", async () => {
         const r = await startToday();
-        return { runId: r.runId, note: r.resumed ? "Resuming your dive" : r.counted ? undefined : "Practice dive: your counted result stays on the board" };
+        const note = r.resumed ? "Resuming your dive" : r.counted || r.guest ? undefined : "Practice dive: your counted result stays on the board";
+        return { runId: r.runId, note };
       }),
     practice: (gameId: string) => go(gameId, () => runApi.create(gameId)),
   };

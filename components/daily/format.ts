@@ -28,11 +28,12 @@ export function metres(points: number): string {
 }
 
 /** The Reveal's crowd caption, Krillion style. */
-export function crowdCaption(crowd: Pick<CrowdReveal, "players" | "betterThanPct">, counted: boolean): string {
+export function crowdCaption(crowd: Pick<CrowdReveal, "players" | "betterThanPct">, counted: boolean, guest = false): string {
   if (crowd.players === 0 || crowd.betterThanPct === null) {
     return counted ? "YOU'RE THE FIRST DIVER TODAY" : "NOBODY HAS COUNTED A DIVE YET TODAY";
   }
   if (counted && crowd.players === 1) return "YOU'RE THE FIRST DIVER TODAY";
+  if (guest) return `WOULD BEAT ${crowd.betterThanPct}% OF TODAY'S PLAYERS`;
   return counted
     ? `BETTER THAN ${crowd.betterThanPct}% OF TODAY'S PLAYERS`
     : `PRACTICE · WOULD BEAT ${crowd.betterThanPct}% OF TODAY'S PLAYERS`;
@@ -72,7 +73,10 @@ export function findRateLookup(crowd: Pick<CrowdReveal, "players" | "answerFindR
 /** What Lumen says on the hub. */
 export function lumenLine(daily: Pick<DailyToday, "theme" | "players" | "me">, betterThanPct: number | null): string {
   const me = daily.me;
-  if (!me) return "Same seven prompts for everyone today. Sign in and show me how deep you can go!";
+  if (!me || (me.guest && me.status === "not_played")) return "Same seven prompts for everyone today. Dive in, no account needed!";
+  if (me.guest && me.status === "played") {
+    return me.wouldPlace ? `That's #${me.wouldPlace} today! Sign up and your next dives go on the board.` : "Nice dive! Sign up and your next dives go on the board.";
+  }
   if (me.status === "in_progress") return "Your dive is still down there. Want to finish it before midnight?";
   if (me.status === "not_played") {
     if (me.dailyStreak.current > 0) return `${me.dailyStreak.current}-day Daily streak! Keep the lantern lit: today's theme is ${daily.theme}.`;
