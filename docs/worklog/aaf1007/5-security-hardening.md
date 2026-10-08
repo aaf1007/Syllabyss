@@ -42,6 +42,8 @@ privacy/terms pages, account deletion, and a checklist of the manual (dashboard/
 - Tiger Cloud's DB cert chains to GTS Root R1, so `sslmode=verify-full` works (tested read-only on the dev service).
 - `lib/daily/daily.test.ts` "reads NEXT_PUBLIC_SITE_URL" fails locally when .env.local sets it; same on main, unrelated.
 
+- LangSmith tracing stays on in production (user's call, for reviewing Sonar): `/privacy` lists LangSmith with a 14-day deletion promise, so the project must stay on base retention (docs/security.md §3).
+
 ## Files touched
 - next.config.ts, lib/security/*, app/api/csp-report, lib/rate-limit*.ts, db/migrations/20261006T2330_rate_limits.sql
 - the four AI routes, components/sonar/SonarBuddy.tsx

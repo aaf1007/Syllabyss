@@ -68,6 +68,10 @@ export default function PrivacyPage() {
             Sonar&apos;s replies. If Claude is unavailable, Google Gemini is used instead.
           </li>
           <li>
+            <strong>LangChain (LangSmith)</strong> keeps a record of each Sonar conversation (your messages, the progress
+            summary and Sonar&apos;s replies) so we can review them and improve Sonar. These records are deleted after 14 days.
+          </li>
+          <li>
             <strong>Clerk</strong> handles sign-in and stores your account details.
           </li>
           <li>

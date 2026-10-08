@@ -43,7 +43,8 @@ Do them roughly in this order. Tick them off in issue #5.
 
 ### 3. Render (dashboard.render.com → the web service)
 
-- [ ] **Environment**: `DEV_PLAYER_ID` is **not** set. `LANGSMITH_TRACING` is unset or `false` (otherwise Players' Sonar messages go to LangSmith, which `/privacy` doesn't list). `SONAR_MODEL` starts with `claude-`, not `anthropic/`, for the same reason.
+- [ ] **Environment**: `DEV_PLAYER_ID` is **not** set. `SONAR_MODEL` is unset or starts with `claude-`.
+- [ ] **LangSmith** (smith.langchain.com), if `LANGSMITH_TRACING=true`: `/privacy` says Sonar traces are deleted after **14 days**, so keep the `syllabyss-sonar` project on **base** trace retention (14 days) and don't upgrade traces to extended (400-day) retention, including through automation rules or annotation queues, which upgrade the traces they touch. Only give teammates who need it access to the LangSmith workspace: traces contain Players' messages.
 - [ ] **Environment**: change `DATABASE_URL` from `sslmode=require` to **`sslmode=verify-full`**. Also update it in the GitHub environments `production` and `production-db`. Tiger Cloud's certificate chains to a public CA (checked on the dev service), so nothing else is needed. This stops a network attacker from impersonating the database.
 - [ ] **Notifications**: send deploy failures to your email.
 

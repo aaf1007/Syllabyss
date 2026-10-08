@@ -58,7 +58,7 @@ Set these on the host (**needs human**: they're secrets). `NEXT_PUBLIC_*` values
 | `GEMINI_VERIFY_MODEL` | unset | Defaults to the fallback model |
 | `SONAR_MODEL` | `claude-sonnet-5-5` | Sonar's coach model (F32). `claude-…` calls Anthropic directly; `anthropic/…` goes through the LangSmith LLM Gateway (beta, not enabled on the free plan); any other name is a Gemini model. Gemini is always the fallback |
 | `ANTHROPIC_API_KEY` | `sk-ant-…` | For the Claude coach. Without it, Sonar falls back to Gemini |
-| `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | unset in production | Optional: traces every Sonar turn (Players' messages included) in LangSmith. If you turn it on in production, add LangSmith to `/privacy` first |
+| `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | your key, `true`, `syllabyss-sonar` | Traces every Sonar turn (Players' messages included) in LangSmith, for reviewing and improving Sonar. `/privacy` lists LangSmith and promises traces are deleted after **14 days**, so keep the project on base (14-day) trace retention |
 | `NEXT_PUBLIC_SITE_URL` | `https://<your domain>` | The link at the end of the Daily share text. Without it, shares point at `http://localhost:3000` |
 | `NODE_ENV` | `production` (hosts set it) | |
 | **`DEV_PLAYER_ID`** | **never set** | Dev-only auth bypass. `lib/auth.ts` honours it only when `NODE_ENV === 'development'`, but leave it unset anyway. If set under `next dev` it signs everyone in as that Player |
