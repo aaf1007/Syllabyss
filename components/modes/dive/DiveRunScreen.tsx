@@ -566,12 +566,12 @@ export function DiveRunScreen({ initial, context }: Props) {
         {/* play area: the one-try inputs (the tier lines only appear in the water once you answer) */}
         <div className="relative mx-auto my-3 min-h-[120px] w-full max-w-[640px] flex-1">
           {showChoices && prompt?.kind === "odd_one_out" && prompt.options && (
-            <div className="relative z-10 max-h-full overflow-y-auto pt-2" style={{ animation: "rise-in .5s var(--ease-out) .2s both" }}>
+            <div className="relative z-10 -mx-2 max-h-full overflow-y-auto px-2 pt-2 pb-3" style={{ animation: "rise-in .5s var(--ease-out) .2s both" }}>
               <OptionGrid options={prompt.options} onPick={pickOption} locked={locked || !playing} correct={rightOption} picked={picked} />
             </div>
           )}
           {showChoices && prompt?.kind === "ordered_recall" && (
-            <div className="relative z-10 max-h-full overflow-y-auto pt-1" style={{ animation: "rise-in .5s var(--ease-out) .2s both" }}>
+            <div className="relative z-10 -mx-2 max-h-full overflow-y-auto px-2 pt-1 pb-3" style={{ animation: "rise-in .5s var(--ease-out) .2s both" }}>
               <OrderList items={order} onChange={setOrder} locked={locked || !playing} correctOrder={rightOrder} />
             </div>
           )}
