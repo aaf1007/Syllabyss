@@ -10,7 +10,7 @@ import {
   baseUsername, displayNameFrom, firstFreeUsername, normalizeUsername, usernameProblem,
   type ClerkProfileSource,
 } from "./username";
-import { AVATARS, type EarnedBadge, type GameBest, type MyProfile, type PlayerSummary, type ProfileCard, type PublicProfile } from "./types";
+import { AVATARS, randomAvatar, type EarnedBadge, type GameBest, type MyProfile, type PlayerSummary, type ProfileCard, type PublicProfile } from "./types";
 import { streakFor, totalXp, type Db } from "./xp";
 
 // Profiles: filling them in from Clerk, editing them, and the public payloads.
@@ -41,7 +41,7 @@ async function fetchClerkUser(playerId: string): Promise<ClerkProfileSource | nu
  *   Profile is incomplete; pass null to never call Clerk (tests).
  */
 export async function ensureProfile(playerId: string, clerkUser?: ClerkProfileSource | null, db: Db = sql): Promise<string> {
-  await db`insert into players (id) values (${playerId}) on conflict (id) do nothing`;
+  await db`insert into players (id, avatar) values (${playerId}, ${randomAvatar()}) on conflict (id) do nothing`;
   const [row] = await db<{ username: string | null; image_url: string | null }[]>`
     select username, image_url from players where id = ${playerId}`;
 

@@ -15,13 +15,18 @@ export type RankName = (typeof RANKS)[number]["name"];
 
 /**
  * Pixel avatar ids (Q17): the 16 sprites drawn in components/ui/avatars.ts (keep the two lists equal). The DB only checks the id's shape,
- * so adding an avatar here needs no migration. The first is the default.
+ * so adding an avatar here needs no migration. New Players get a random one (randomAvatar); the first is the fallback.
  */
 export const AVATARS = [
   "anglerfish", "axolotl", "astronaut", "frog", "cat", "robot", "octopus", "penguin",
   "fox", "ghost", "slime", "owl", "bear", "alien", "crab", "jellyfish",
 ] as const;
 export type AvatarId = (typeof AVATARS)[number];
+
+/** A random avatar id, given to a Player when their row is first created so new Players don't all look the same. */
+export function randomAvatar(random: () => number = Math.random): AvatarId {
+  return AVATARS[Math.floor(random() * AVATARS.length)];
+}
 
 /** Usernames: lowercase letters, digits and underscores, 3–20 characters. */
 export const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
