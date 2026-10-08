@@ -670,7 +670,7 @@ Issue #77
 - [x] Clerk elements reuse the site recipes: yellow `.px-btn` primary action, `.px-btn` social buttons, `.px-frame` card with a hard drop, 2px input border that turns signal-cyan on focus
 - [x] `cssLayerName: "clerk"` and `@layer theme, base, clerk, components, utilities` so Tailwind preflight can't break Clerk and our classes win
 - [x] Checked in a production build: `/sign-in` page and the nav's sign-in modal
-- [ ] Application name in the Clerk dashboard set to SYLLABYSS (the title says "Sign in to StormHacks 2026" until then; dashboard only, needs human)
+- [ ] Application name in the Clerk dashboard set to SYLLABYSS (the title says "Sign in to Syllabyss" until then; dashboard only, needs human)
 
 Entry points: `clerkAppearance` in `lib/ui/clerk-appearance.ts`; the `.cl-*` rules next to `.px-frame` in `app/globals.css`
 
