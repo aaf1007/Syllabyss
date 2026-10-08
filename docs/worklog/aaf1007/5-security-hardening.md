@@ -1,8 +1,8 @@
 # #5 Security hardening for real users
 
-Status: in-review
+Status: done
 Branch: feat/5-security-hardening
-Updated: 2026-10-06 23:40
+Updated: 2026-10-07
 
 ## Goal
 Make syllabyss.tech safe to open to real users: security headers + CSP, rate limits on the AI routes,
@@ -27,8 +27,7 @@ privacy/terms pages, account deletion, and a checklist of the manual (dashboard/
   CSP reports arrive (`[csp]` log) and no violations from our own pages; full `test:db` (106) green on a local container.
 
 ## Next steps
-1. User reviews (handed over 2026-10-06). On approval: tick F44 in docs/FEATURES.md (new row + section, Platform lane,
-   issue #5), set this worklog to done, open the PR with `Closes #5`.
+1. Approved 2026-10-07; F46 added to docs/FEATURES.md (F44/F45 were taken by #6 and #9), PR opened with `Closes #5`.
 2. After merge: user works through docs/security.md; ~a week later flip `CSP_ENFORCE`.
 
 ## Decisions & gotchas

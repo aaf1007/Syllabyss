@@ -56,6 +56,7 @@ The single board for **what to build, who can take it, and what's done**. Each f
 | F43 | CI: CodeQL, dependency review, Docker build check, actionlint | Platform | F42 | #3 | done |
 | F44 | Landing: all six Game Modes in an even grid | Frontend | F19 | #6 | done |
 | F45 | Delete a Module | Frontend | F08 | #9 | done |
+| F46 | Security hardening: headers, CSP, rate limits, account deletion, privacy and terms | Platform | F12 | #5 | done |
 
 Status values: `planned` · `done` · `blocked`. "In progress" is shown by the GitHub `in-progress` label.
 
@@ -810,3 +811,21 @@ Notes for others:
 - New tables hanging off a Module should `ON DELETE CASCADE`; anything without an FK (like `guess_events`) has to be added to `deleteModule` by hand.
 - `Modal` focuses a `[data-autofocus]` element if the dialog has one.
 - Figures (#7) will need their R2 objects deleted after this commits.
+
+## F46 Security hardening: headers, CSP, rate limits, account deletion, privacy and terms
+Issue #5 (aaf1007/Syllabyss)
+- [x] Security headers on every response (HSTS, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP), no `x-powered-by`
+- [x] Content-Security-Policy, Report-Only for now; violations logged as `[csp]` lines by `/api/csp-report`
+- [x] Rate limits on uploads, Game generation, Sonar and page notes: per Player per minute and per day, plus a site-wide daily cap
+- [x] Account deletion from `/settings` (all Player data, then the Clerk user) and the Clerk `user.deleted` webhook
+- [x] `/privacy` and `/terms`, linked from the footer, sign-up and Settings
+- [x] `docs/security.md`: what the code does and the manual checklist (Clerk, Render env, AI spend caps, DNS, domain reputation)
+
+Entry points: `lib/security/headers.ts` (`CSP_ENFORCE`), `lib/rate-limit.ts` (`rateLimit`, `LIMITS`), `lib/account/delete.ts` (`deletePlayerData`), `app/api/me/account/route.ts`, `app/api/webhooks/clerk/route.ts`, `app/settings/`, `app/privacy/`, `app/terms/`
+
+Notes for others:
+- A new route that calls Gemini or Claude should call `rateLimit(playerId, "<action>")` first and return `rateLimitedResponse(limit)`; add the action to `LIMITS`.
+- Loading a new third-party script, image, font or API host in the browser: add it to the CSP in `lib/security/headers.ts`. The headers are built at build time.
+- Sending user data to a new service: add it to `/privacy` in the same PR.
+- A new table with Player data needs `ON DELETE CASCADE` from `players`; a hypertable or anything without an FK has to be added to `deletePlayerData` by hand.
+- Needs `CLERK_WEBHOOK_SIGNING_SECRET` in production and the `rate_limits` migration approved on deploy.

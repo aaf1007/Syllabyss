@@ -90,7 +90,7 @@ export default function PrivacyPage() {
 
       <Section title="4. How long we keep it">
         <p>
-          We keep your data until you delete it or delete your account. Deleting a file or Game removes it straight away. Deleting your account removes all of your data from our database at once. Copies in our providers&apos;
+          We keep your data until you delete it or delete your account. Deleting a file, Game or Module removes it straight away. Deleting your account removes all of your data from our database at once. Copies in our providers&apos;
           backups and logs expire on their normal schedule.
         </p>
       </Section>
