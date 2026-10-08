@@ -7,5 +7,5 @@ export async function POST(req: Request, ctx: RouteContext<"/api/runs/[runId]/gu
   // Read the body before the transaction opens, so a slow upload can't hold a pooled connection.
   // Unparseable JSON becomes undefined, which the engine rejects with 400.
   const body: unknown = await req.json().catch(() => undefined);
-  return runRoute((tx, playerId, now) => guess(tx, playerId, runId, body, now));
+  return runRoute((tx, playerId, now) => guess(tx, playerId, runId, body, now), { guests: true });
 }

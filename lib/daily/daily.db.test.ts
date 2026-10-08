@@ -11,6 +11,7 @@ import { PROMPT_MS } from "@/lib/modes/dive/rules";
 import * as engine from "@/lib/runs/run-engine";
 import type { DiveReveal, DiveRunState, GuessBody } from "@/lib/runs/types";
 import { addDays, startOfVancouverDay } from "./days";
+import { gameLeaderboard } from "@/lib/social/leaderboards";
 import { buildPuzzleRows, checkPuzzle, writePuzzle, type PuzzleFile } from "./puzzle";
 import { dailyArchive, dailyLeaderboard, dailyToday, getDailyPuzzle, startTodayRun } from "./queries";
 
@@ -246,6 +247,64 @@ describe("Daily Dive", () => {
       expect(badges.every((x) => x.ref === f.day)).toBe(true);
       const [{ awarded }] = await f.tx<{ awarded: number }[]>`select award_daily_top10(${addDays(f.day, 2)}::date) as awarded`;
       expect(awarded).toBe(0);
+    }));
+});
+
+describe("Guest Daily Dive (#8)", () => {
+  it("lets a Guest play today's puzzle once, off the board, with no XP, streak or badges", () =>
+    withPuzzle(async (f) => {
+      const [a] = f.players;
+      const guest = `guest_${randomUUID()}`;
+      await f.tx`insert into players (id, is_guest) values (${guest}, true)`;
+      const sa = await playToday(f, a, [1, 2]); // a Player, two misses
+
+      // Starting twice before finishing resumes the same Run
+      const start = await startTodayRun(f.tx, guest, f.clock.now());
+      expect(start).toMatchObject({ counted: false, guest: true, resumed: false });
+      expect(await startTodayRun(f.tx, guest, f.clock.now())).toMatchObject({ runId: start.runId, resumed: true });
+      const score = await play(f, guest, start.runId);
+      expect(score).toBeGreaterThan(sa.score);
+
+      // Nothing social: no daily_results, finds, XP or badges
+      for (const table of ["daily_results", "daily_answer_finds", "xp_events", "player_badges"]) {
+        expect(await f.tx.unsafe(`select 1 from ${table} where player_id = $1`, [guest])).toHaveLength(0);
+      }
+
+      // Off the board, out of the crowd count
+      const board = (await dailyLeaderboard(null, { day: f.day }, f.clock.now(), f.tx))!.leaderboard;
+      expect(board.entries.map((e) => e.value)).toEqual([sa.score]);
+      expect(board.total).toBe(1);
+      expect((await dailyLeaderboard(guest, { day: f.day }, f.clock.now(), f.tx))!.leaderboard.me).toBeNull();
+
+      // Their card: played, with where they'd have placed
+      const today = await dailyToday(guest, f.clock.now(), f.tx);
+      expect(today!.players).toBe(1);
+      expect(today!.me).toMatchObject({ status: "played", guest: true, runId: start.runId, wouldPlace: 1, result: { score } });
+      expect(today!.me!.result!.shareText).not.toMatch(/practice/);
+
+      // The Reveal says the same
+      const reveal = (await engine.getReveal(f.tx, guest, start.runId)) as DiveReveal;
+      expect(reveal.daily).toMatchObject({ counted: false, guest: true, wouldPlace: 1 });
+      expect(reveal.daily!.shareText).not.toMatch(/practice/);
+      expect(reveal.crowd!.players).toBe(1);
+
+      // Once a day
+      await expect(startTodayRun(f.tx, guest, f.clock.now())).rejects.toMatchObject({ status: 409 });
+
+      // A Player's view is unchanged
+      expect((await dailyToday(a, f.clock.now(), f.tx))!.me).toMatchObject({ status: "counted", guest: false, wouldPlace: null });
+    }));
+
+  it("keeps Guests off public Game boards even if they have Runs there", () =>
+    withPuzzle(async (f) => {
+      const guest = `guest_${randomUUID()}`;
+      await f.tx`insert into players (id, is_guest) values (${guest}, true)`;
+      const sa = await playToday(f, f.players[0], [1, 2]);
+      const start = await startTodayRun(f.tx, guest, f.clock.now());
+      expect(await play(f, guest, start.runId)).toBeGreaterThan(sa.score);
+      const board = await gameLeaderboard("", f.gameId, {}, f.tx); // best Run per player, any day
+      expect(board!.entries.map((e) => e.value)).toEqual([sa.score]);
+      expect(board!.total).toBe(1);
     }));
 });
 

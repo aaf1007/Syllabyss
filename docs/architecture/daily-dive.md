@@ -44,6 +44,14 @@ Leaderboard order is the same as F21's `gameLeaderboard(gameId, { day, counting:
 
 **Daily Top 10 Badge.** Awarded once a day is over (not at read time, so a later Run can't knock someone out after they've been told they're in): `award_daily_top10(today)` marks every live day before `today` (`top10_awarded_at`) and grants `daily-top-10` (ref = the day) to everyone with `rank() <= 10` by score desc, finish asc. It runs inside every claim, so the midnight job (or the first request of the new day) hands it out. `player_badges` keeps one row per Badge, so the ref is the first day earned.
 
+## Guests (#8)
+
+Signed out, you can still play today's puzzle as a **Guest** (`CONTEXT.md`). A Guest is a `players` row with `is_guest = true` and id `guest_<uuid>`, kept in the httpOnly `syllabyss_guest` cookie (`lib/guest.ts`). The row is made only when a Guest starts a dive (`POST /api/daily/today/run`), never on a page view. The id is a random UUID and never a Clerk id, so a cookie can't stand in for a Player.
+
+- **Play:** today's puzzle only, one finished dive per Guest (409 after that); an in-progress dive resumes. Run routes under `/api/runs/[runId]` accept the Guest (`runRoute(…, { guests: true })`), and so do the Run and Reveal pages (`requirePlayerOrGuest()`). Starting a Run of any other Game (`POST /api/games/[gameId]/runs`) stays Player-only.
+- **Nothing social:** `afterFinish()` returns early for Guests: no XP, Badges, Topic progress, `daily_results` or `daily_answer_finds`. So XP boards, the continuous aggregates, crowd stats and `award_daily_top10` never see them. `gameLeaderboard`'s global scope also filters `not in (select id from players where is_guest)`, since it reads `runs`. Guests never get a username, so Profiles, search and friend requests can't find them.
+- **Result:** `DailyToday.me` has `guest: true`, status `played` once finished, and `wouldPlace`: 1 + the counted Runs that beat it (the board's order). `Reveal.daily` has the same `guest` and `wouldPlace`. The share text has no "(practice)". The Today card and Reveal show a sign-up button. Signing up doesn't carry the Guest's Run over.
+
 ## Reveal extras
 
 Every Reveal now has `daily` and `crowd` (both null outside the Daily; `lib/runs/types.ts`, shapes in `lib/daily/types.ts`):
@@ -78,15 +86,16 @@ Types: `lib/daily/types.ts` (client-safe). Errors are `{ error }`.
 | Method | Route | Auth | Returns |
 |---|---|---|---|
 | GET | `/api/daily/today` | optional | `{ daily: DailyToday }`; 404 no puzzle today |
-| POST | `/api/daily/today/run` | required (401) | `DailyRunResponse { runId, resumed, counted, number, day }`; 404 no puzzle |
+| POST | `/api/daily/today/run` | Player, else a Guest (made if needed) | `DailyRunResponse { runId, resumed, counted, guest, number, day }`; 404 no puzzle; 409 a Guest's second dive |
 | GET | `/api/daily/leaderboard?day=&scope=global\|friends&limit=` | optional (friends: 401) | `{ daily: { number, day, title, gameId }, leaderboard: Leaderboard }`; 400 bad day; 404 no live puzzle that day |
 | GET | `/api/daily/archive?limit=` | optional | `{ days: DailyArchiveEntry[] }` newest first, today included |
 
 ```ts
 DailyToday { number, day, theme, title, gameId, teaser /* first Prompt text */, promptCount, players,
              nextAt /* ISO, next Vancouver midnight */, serverNow,
-             me: { status: "not_played" | "in_progress" | "counted", runId, result: DailyResult | null,
-                   streak: Streak /* F21 */, dailyStreak: Streak /* days with a Counted Run */ } | null }
+             me: { status: "not_played" | "in_progress" | "counted" | "played" /* a Guest's */, runId, result: DailyResult | null,
+                   streak: Streak /* F21 */, dailyStreak: Streak /* days with a Counted Run */,
+                   guest: boolean, wouldPlace: number | null /* Guests */ } | null }
 DailyResult { runId, score, depth, finishedAt, tiers, shareText }
 DailyArchiveEntry { number, day, theme, title, gameId, isToday, players,
                     me: { counted: { score, depth, finishedAt, tiers } | null, bestScore, runs } | null }
@@ -94,7 +103,7 @@ DailyArchiveEntry { number, day, theme, title, gameId, isToday, players,
 
 - **Play today:** `POST /api/daily/today/run` resumes your in-progress Run on today's puzzle or starts one (abandoning any other in-progress Run, as every new Run does); then the normal Dive Run screens and Reveal (`/api/runs/[runId]…`). `counted: false` = today's result is already in, so this is practice.
 - **Archive:** past puzzles play as practice with `POST /api/games/[gameId]/runs` (they're public).
-- The landing page teaser uses `GET /api/daily/today` signed out (`me: null`).
+- The landing page teaser uses `GET /api/daily/today` signed out (`me: null`, or the Guest's card).
 - Countdown: render from `nextAt` with the clock offset `Date.parse(serverNow) − Date.now()`.
 
 ## Seed

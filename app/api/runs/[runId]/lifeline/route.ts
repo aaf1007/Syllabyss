@@ -14,5 +14,5 @@ export async function POST(req: Request, ctx: RouteContext<"/api/runs/[runId]/li
       return Response.json({ error: "Send a JSON body" }, { status: 400 });
     }
   }
-  return runRoute((tx, playerId, now) => applyLifeline(tx, playerId, runId, body, now));
+  return runRoute((tx, playerId, now) => applyLifeline(tx, playerId, runId, body, now), { guests: true });
 }

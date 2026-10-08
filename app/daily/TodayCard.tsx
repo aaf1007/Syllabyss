@@ -1,5 +1,5 @@
 "use client";
-import { SignInButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { TIER_ORDER, TIER_UI } from "@/components/modes/dive/tiers";
@@ -76,16 +76,24 @@ export function TodayCard({ daily, board, betterThanPct }: { daily: DailyToday; 
         </ul>
 
         <div className="mt-6">
-          {!me && (
+          {(!me || (me.guest && me.status === "not_played")) && (
             <div className="flex flex-col items-start gap-2">
-              <SignInButton mode="modal" forceRedirectUrl="/daily">
-                <DiveButton>▼ DIVE IN ▼</DiveButton>
-              </SignInButton>
-              <p className="font-sans text-sm text-muted">Sign in to play. It&apos;s free, and your first dive today counts.</p>
+              <DiveButton onClick={play.today} pending={play.pending === "today"}>
+                {play.pending === "today" ? "▼ DIVING… ▼" : "▼ DIVE IN ▼"}
+              </DiveButton>
+              <p className="font-sans text-sm text-muted">
+                No account needed: one dive today as a guest, off the leaderboard.{" "}
+                <SignInButton mode="modal" forceRedirectUrl="/daily">
+                  <button type="button" className="text-signal underline-offset-2 hover:underline">
+                    Sign in
+                  </button>
+                </SignInButton>{" "}
+                to make it count.
+              </p>
             </div>
           )}
 
-          {me?.status === "not_played" && (
+          {me && !me.guest && me.status === "not_played" && (
             <div className="flex flex-col items-start gap-2">
               <DiveButton onClick={play.today} pending={play.pending === "today"}>
                 {play.pending === "today" ? "▼ DIVING… ▼" : "▼ DIVE IN ▼"}
@@ -99,7 +107,47 @@ export function TodayCard({ daily, board, betterThanPct }: { daily: DailyToday; 
               <DiveButton as="link" href={`/runs/${me.runId}`}>
                 ▼ RESUME DIVE ▼
               </DiveButton>
-              <p className="font-sans text-sm text-muted">Your dive is waiting where you left it. Finish it to put it on the board.</p>
+              <p className="font-sans text-sm text-muted">
+                {me.guest
+                  ? "Your dive is waiting where you left it. Finish it to see where you'd place."
+                  : "Your dive is waiting where you left it. Finish it to put it on the board."}
+              </p>
+            </div>
+          )}
+
+          {me?.status === "played" && result && (
+            <div className="flex flex-col gap-4" style={{ animation: "rise-in .5s var(--ease-out) .1s both" }}>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="flex items-center gap-2 font-hud text-[15px] tracking-[0.25em] text-caution">
+                    <PixelIcon name="check" size={14} /> TODAY&apos;S DIVE · GUEST
+                  </p>
+                  <p className="font-hud text-[clamp(52px,12vw,76px)] leading-none text-reward tabular-nums" style={{ textShadow: "0 0 18px color-mix(in srgb, var(--reward) 45%, transparent)" }}>
+                    <Odometer value={result.score} format={metres} />
+                  </p>
+                </div>
+                <TierSquares tiers={result.tiers} size={28} />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Stat label="YOU'D BE">{me.wouldPlace ? `#${me.wouldPlace}` : "—"}<span className="ml-1 text-[16px] text-muted">of {daily.players + 1}</span></Stat>
+                <Stat label="BETTER THAN">{betterThanPct === null || daily.players < 1 ? "—" : `${betterThanPct}%`}</Stat>
+                <Stat label="SCORE">{result.score}<span className="ml-1 text-[16px] text-muted">pts</span></Stat>
+              </div>
+              <pre className="overflow-x-auto bg-[#060d1a] px-3 py-2 font-hud text-[18px] leading-snug whitespace-pre-wrap text-text" style={{ boxShadow: "inset 0 0 0 1px var(--dive-rim, #1b3050)" }} aria-label="Your share text">
+                {result.shareText}
+              </pre>
+              <div className="flex flex-wrap items-center gap-3">
+                <ShareButton text={result.shareText} look="dive" />
+                <Link href={`/runs/${result.runId}/reveal`} className="px-4 py-2.5 font-hud text-[20px] tracking-[0.2em] text-muted transition hover:text-signal" style={{ boxShadow: "inset 0 0 0 1px var(--dive-rim, #1b3050)" }}>
+                  SEE YOUR CATCH ▸
+                </Link>
+              </div>
+              <div className="flex flex-col items-start gap-2 border-t border-[#1b3050] pt-4">
+                <SignUpButton mode="modal" forceRedirectUrl="/daily">
+                  <DiveButton>SIGN UP TO GET ON THE BOARD ▸</DiveButton>
+                </SignUpButton>
+                <p className="font-sans text-sm text-muted">Guest dives don&apos;t go on the leaderboard. Sign up free and tomorrow&apos;s dive counts, with streaks and XP.</p>
+              </div>
             </div>
           )}
 

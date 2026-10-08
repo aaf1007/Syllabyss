@@ -30,10 +30,10 @@ async function toBoard(
   return { board, scope, period, entries, me: mine ? toEntry(mine) : null, total: rows[0]?.total ?? 0 };
 }
 
-/** SQL fragment: restricts `col` to the scope (Friends = me + my friends). */
+/** SQL fragment: restricts `col` to the scope (Friends = me + my friends). Global never shows Guests. */
 function inScope(db: Db, col: string, scope: LeaderboardScope, me: string) {
   return scope === "global"
-    ? db`${db(col)} <> ${SYSTEM_PLAYER_ID}`
+    ? db`${db(col)} <> ${SYSTEM_PLAYER_ID} and ${db(col)} not in (select id from players where is_guest)`
     : db`(${db(col)} = ${me} or ${db(col)} in ${friendIdsOf(db, me)})`;
 }
 

@@ -36,6 +36,7 @@ const RULES: { icon: "target" | "lantern" | "cards"; text: string }[] = [
 export function DailyHub({ daily, archive, board, betterThanPct }: Props) {
   const router = useRouter();
   const me = daily.me;
+  const signedIn = !!me && !me.guest;
   const say = lumenLine(daily, betterThanPct);
   const happy = me?.status === "counted" ? "happy" : undefined;
 
@@ -81,7 +82,7 @@ export function DailyHub({ daily, archive, board, betterThanPct }: Props) {
 
           <section className="card bg-surface/95 p-5" style={{ animation: "rise-in .5s var(--ease-out) .2s both" }}>
             <h2 className="label-line">Daily streak</h2>
-            {me ? (
+            {me && signedIn ? (
               <div className="mt-3 flex items-center gap-4">
                 <StreakFlame days={me.dailyStreak.current} active={me.dailyStreak.playedToday} size={56} showCount={false} />
                 <div>
@@ -116,10 +117,10 @@ export function DailyHub({ daily, archive, board, betterThanPct }: Props) {
         </aside>
 
         <div className="min-w-0 lg:col-start-1">
-          <DailyBoard initial={board} signedIn={!!me} number={daily.number} />
+          <DailyBoard initial={board} signedIn={signedIn} number={daily.number} />
         </div>
         <div className="min-w-0 lg:col-start-1">
-          <Archive days={archive} signedIn={!!me} />
+          <Archive days={archive} signedIn={signedIn} />
         </div>
       </div>
     </main>
