@@ -28,7 +28,7 @@ Find your login with `gh api user --jq .login`. Separate folders mean two people
 # #<issue> <title>
 
 Status: in-progress        <!-- in-progress | paused | in-review | done -->
-Branch: feat/<issue>-<slug>
+Branch: <type>/<issue>-<slug>    <!-- feat | fix | chore | refact -->
 Updated: YYYY-MM-DD HH:MM
 
 ## Goal

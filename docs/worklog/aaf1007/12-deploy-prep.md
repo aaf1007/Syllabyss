@@ -1,6 +1,6 @@
 # #12 Deploy and demo prep (prep only)
 
-Status: in-progress (prep merged via #68; now deploying to Render)
+Status: done (prep merged via #68; deployed to Render)
 Branch: feat/12-dockerfile (from main)
 Updated: 2026-10-04
 
