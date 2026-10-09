@@ -242,6 +242,11 @@ function MobileSheet({
                 Friends
               </Link>
             </li>
+            <li>
+              <Link href="/settings" onClick={onNavigate} className="flex h-12 items-center rounded-md border border-border bg-bg-2 px-4 font-display text-muted hover:text-text">
+                Settings
+              </Link>
+            </li>
           </>
         )}
       </ul>

@@ -2,6 +2,7 @@ import { getApiPlayer } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { getPlayerDocument } from "@/lib/documents/queries";
 import { writePageNotes } from "@/lib/gemini/notes";
+import { rateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 // Gemini can take a while on a cold page; the stored notes come back at once after that.
 export const maxDuration = 120;
@@ -29,6 +30,12 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/documents/[docu
   if (!page) return Response.json({ error: "Page not found" }, { status: 404 });
   if (page.notesMd !== null) return Response.json({ notesMd: page.notesMd });
 
+  if (!inFlight.has(page.id)) {
+    // Only a fresh Gemini call counts; stored notes and joining an in-flight job are free.
+    const limit = await rateLimit(playerId, "notes");
+    if (!limit.ok) return rateLimitedResponse(limit);
+  }
+  // Re-read: another request may have started the job while we were counting.
   let job = inFlight.get(page.id);
   if (!job) {
     job = writePageNotes(document.filename, { pageNumber: n, contentMd: page.contentMd })

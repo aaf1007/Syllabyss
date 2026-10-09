@@ -5,6 +5,7 @@ import { isUuid } from "@/lib/documents/queries";
 import { generateGame } from "@/lib/games/generate-game";
 import { gameSelectById, listModuleGames } from "@/lib/games/queries";
 import { isModeId } from "@/lib/modes";
+import { rateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 // Generation runs in after(); give it room on platforms that honour maxDuration.
 export const maxDuration = 300;
@@ -63,6 +64,8 @@ export async function POST(req: Request, ctx: RouteContext<"/api/modules/[module
     where id in ${sql(documentIds)} and module_id = ${moduleId} and player_id = ${playerId}`;
   if (docs.length !== documentIds.length) return Response.json({ error: "Choose files from this Module" }, { status: 400 });
   if (docs.some((d) => d.status !== "parsed")) return Response.json({ error: "Only Ready files can be used" }, { status: 409 });
+  const limit = await rateLimit(playerId, "generate");
+  if (!limit.ok) return rateLimitedResponse(limit);
 
   const gameId = await sql.begin(async (tx) => {
     const [game] = await tx<{ id: string }[]>`

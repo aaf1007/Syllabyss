@@ -28,7 +28,7 @@ export function SignOutAction({ className = "", role }: { className?: string; ro
 const ITEM =
   "flex w-full items-center gap-2.5 rounded-sm px-3 py-2 text-left font-display text-[15px] text-muted outline-none transition hover:bg-surface hover:text-text focus-visible:bg-surface focus-visible:text-text";
 
-/** The avatar button and its menu: Profile, Friends, Sign out. Arrow keys move, Escape closes. */
+/** The avatar button and its menu: Profile, Friends, My Modules, Settings, Sign out. Arrow keys move, Escape closes. */
 export function UserMenu({ player }: { player: NavPlayer | null }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -110,6 +110,9 @@ export function UserMenu({ player }: { player: NavPlayer | null }) {
           </Link>
           <Link role="menuitem" href="/modules" className={ITEM} onClick={() => setOpen(false)}>
             <PixelIcon name="book" size={16} /> My Modules
+          </Link>
+          <Link role="menuitem" href="/settings" className={ITEM} onClick={() => setOpen(false)}>
+            <PixelIcon name="gear" size={16} /> Settings
           </Link>
           <div className="my-1 border-t border-border" />
           <SignOutAction role="menuitem" className={`${ITEM} hover:text-danger focus-visible:text-danger`} />
