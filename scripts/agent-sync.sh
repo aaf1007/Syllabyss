@@ -9,7 +9,7 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" || exit 0
 
 echo "=== Team sync (scripts/agent-sync.sh) ==="
 
-if git fetch --quiet origin 2>/dev/null; then
+if git fetch --quiet --prune origin 2>/dev/null; then
   branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
   behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo "?")
   echo "Branch: ${branch}  |  commits on origin/main not in this branch: ${behind}"
@@ -55,12 +55,18 @@ else
   if [ -n "$me" ]; then
     echo
     echo "--- Your worklogs to resume (docs/worklog/${me}/, any branch, not done) ---"
-    for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null); do
+    # origin/main plus the branches not merged into it. A worklog marked done on any of
+    # them is finished, so a stale branch can't bring it back; otherwise the first ref
+    # listed (origin/main when it has the file) gives the status shown.
+    for ref in origin/main $(git for-each-ref --no-merged origin/main --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null); do
       for f in $(git ls-tree --name-only "$ref" "docs/worklog/${me}/" 2>/dev/null); do
         st=$(git show "$ref:$f" 2>/dev/null | sed -n 's/^Status: *\([a-z-]*\).*/\1/p' | head -1)
-        [ "$st" != "done" ] && echo "$ref  $f  (status: ${st:-unknown})"
+        echo "$f ${st:-unknown} $ref"
       done
-    done | sort -u -k2,2
+    done | awk '
+      $2 == "done" { done[$1] = 1 }
+      !($1 in shown) { shown[$1] = $3 "  " $1 "  (status: " $2 ")"; order[++n] = $1 }
+      END { for (i = 1; i <= n; i++) if (!(order[i] in done)) print shown[order[i]] }'
     for f in docs/worklog/"${me}"/*.md; do
       [ -f "$f" ] && ! git ls-files --error-unmatch "$f" >/dev/null 2>&1 && echo "(uncommitted) $f"
     done

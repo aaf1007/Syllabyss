@@ -1,5 +1,7 @@
 # Overnight build: decisions (2026-10-04)
 
+Status: done (overnight build spec, kept as history)
+
 Anton asked for an overnight build (`overnight-orchestrator.md` plus a long list of extras) and went to sleep. Phase 0 of the orchestrator ("grill me") couldn't happen interactively, so **every question I would have asked is answered here with a default**. Anything marked **CHECK** is a guess Anton should confirm in the morning. Subagents: treat this file as the spec of record for the new direction until `docs/design/design-system.md` is rewritten (U1 does that).
 
 Reference images Anton attached (on his Desktop):

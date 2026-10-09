@@ -29,14 +29,16 @@ If setup hasn't been done, `scripts/agent-sync.sh` prints a `!!!` warning. The a
 
 ## 2. Claim before you code
 
-1. Find the feature's issue (`gh issue list --search "<feature>"`). If none exists, create one using the feature's `docs/FEATURES.md` row and spec link.
+This covers every bug fix, feature and chore, however small, in this order: propose the approach (`AGENTS.md`, "Discuss before you build") → the user's go → claim → branch → worklog → code.
+
+1. Find the issue (`gh issue list --search "<topic>"`). If none exists, create one: for a feature, from its `docs/FEATURES.md` row and spec link; otherwise, the problem and the plan in a few lines.
 2. If it's assigned to someone else, stop and tell the user.
-3. Claim it, as your first write action:
+3. Claim it, as your first write action after the user's go:
    ```bash
    gh issue edit <n> --add-assignee @me --add-label in-progress
-   gh issue comment <n> --body "Claimed. Branch: feat/<n>-<slug>. Plan: <one line>."
+   gh issue comment <n> --body "Claimed. Branch: <type>/<n>-<slug>. Plan: <one line>."
    ```
-4. Branch from fresh main: `git fetch origin && git switch -c feat/<n>-<slug> origin/main`.
+4. Branch from fresh main: `git fetch origin && git switch -c <type>/<n>-<slug> origin/main`, where `<type>` is `feat`, `fix`, `chore` or `refact`.
 5. Create your worklog `docs/worklog/<your-login>/<n>-<slug>.md` from the template in `docs/worklog/README.md` (`gh api user --jq .login` gives your login).
 
 ## 3. While working
@@ -55,11 +57,13 @@ If setup hasn't been done, `scripts/agent-sync.sh` prints a `!!!` warning. The a
 
 Do these on the branch right before opening the PR:
 
-- [ ] In `docs/FEATURES.md`, edit only your feature's section and board row: tick the boxes, set Status `done`, and fill **Entry points** and **Notes for others** (e.g. "call `matchGuess(promptId, text)` from `lib/matching/match-guess.ts`").
+- [ ] In `docs/FEATURES.md`, edit only your feature's section and board row: tick the boxes, set Status `done`, and fill **Entry points** and **Notes for others** (e.g. "call `matchGuess(promptId, text)` from `lib/matching/match-guess.ts`"). A chore with no board row skips this; label its PR `no-feature-row` instead.
 - [ ] If the implementation differs from the spec, update the matching `docs/architecture/*.md`.
 - [ ] If you introduced or changed a domain term, update `CONTEXT.md`.
 - [ ] Set `Status: done` in your worklog.
 - [ ] PR body includes `Closes #<n>`. Merging auto-closes the issue, which removes it from the in-progress list.
+
+`.github/workflows/pr-protocol.yml` checks the branch name, `Closes #<n>`, the worklog and the FEATURES row on every PR. Run it locally before opening one: `BODY="Closes #<n>" bash scripts/check-pr-protocol.sh`.
 
 ## 5. Abandoning or pausing
 

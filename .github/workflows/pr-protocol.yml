@@ -1,0 +1,33 @@
+# PR protocol: every PR names its issue in the branch, closes it, finishes its worklog and
+# ticks its FEATURES row (docs/agents/coordination.md §2 and §4). Logic: scripts/check-pr-protocol.sh.
+# Separate from ci.yml so editing the body or labels re-runs only this, not the build and DB tests.
+
+name: PR protocol
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: pr-protocol-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  protocol:
+    name: Branch, issue, worklog, FEATURES
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: bash scripts/check-pr-protocol.sh
+        env:
+          BRANCH: ${{ github.head_ref }}
+          BODY: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.sha }}
+          NO_FEATURE_ROW: ${{ contains(github.event.pull_request.labels.*.name, 'no-feature-row') }}
