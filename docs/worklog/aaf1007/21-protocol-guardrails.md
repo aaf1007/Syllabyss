@@ -1,6 +1,6 @@
 # #21 Team-sync and PR-protocol guardrails
 
-Status: in-review
+Status: done
 Branch: chore/21-protocol-guardrails
 Updated: 2026-10-09
 
@@ -15,7 +15,7 @@ From a retro on #19: the sync offered finished worklogs for resume, and a chore 
 - `scripts/check-pr-protocol.sh` + `.github/workflows/pr-protocol.yml`. Replayed on merged PRs: #16 and #18 pass, #20 fails (branch name; and no worklog even with the label). actionlint and shellcheck clean.
 
 ## Next steps
-1. User review. On approval: set this worklog to done, open the PR with `Closes #21` and the `no-feature-row` label.
+1. Done: user approved; PR opened with `Closes #21` and the `no-feature-row` label.
 2. Optional, user's call: make "Branch, issue, worklog, FEATURES" a required check in the `main` branch protection.
 
 ## Decisions & gotchas
