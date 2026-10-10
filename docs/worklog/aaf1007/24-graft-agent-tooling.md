@@ -2,14 +2,14 @@
 
 Status: done
 Branch: chore/24-graft-agent-tooling
-Updated: 2026-10-09 13:10
+Updated: 2026-10-09 13:30
 
 ## Goal
 Wire graft (a prebuilt repo context graph) into the agent setup so agents query it before grepping or reading source files.
 
 ## Done so far
-- Claude Code hooks (session-start, prompt, post-edit, tool-savings, stop), status line and graft permissions in `.claude/settings.json`.
-- Helper scripts `.claude/helpers/graft-hooks.cjs` and `graft-statusline.cjs`; graft skill in `.claude/skills/graft/`.
+- Claude Code hooks (session-start, prompt, post-edit, tool-savings, stop) and graft permissions in `.claude/settings.json`.
+- Helper script `.claude/helpers/graft-hooks.cjs`; graft skill in `.claude/skills/graft/`.
 - `.mcp.json` registers the graft MCP server.
 - `AGENTS.md` gains a "Graft — repo context graph" section.
 - `/graft/` (the local graph cache) is gitignored; `.ignore` re-admits it to ripgrep.
@@ -19,6 +19,7 @@ None.
 
 ## Decisions & gotchas
 - The graph isn't committed. Each teammate needs `npm i -g @nanonets/graft` and `graft build` to get one; without it the helpers fall back and the AGENTS.md section points at a tool they don't have.
+- No project status line: a committed `statusLine` would override every teammate's own, so graft's status line was dropped.
 - Chore with no FEATURES.md row; the PR carries the `no-feature-row` label.
 
 ## Files touched
