@@ -99,3 +99,59 @@ export function cleanDescription(text: string): string {
     .trim();
   return s.length > MAX_DESCRIPTION ? `${s.slice(0, MAX_DESCRIPTION - 1).trimEnd()}…` : s;
 }
+
+/** Per attempt: a whole page to read. */
+const SCAN_TIMEOUT_MS = 90_000;
+/** Longest transcription we keep (a dense page is a few KB). */
+export const MAX_TRANSCRIPTION = 20_000;
+
+export const SCAN_SYSTEM_INSTRUCTION = `You read one scanned page of a student's lecture slides or notes (an image of the page) so it can be studied and quizzed from text.
+
+Return:
+- text_md: everything written on the page, transcribed in reading order as markdown. The page title as "## ", sub-headings as "### ", bullets as "- ", numbered items as "1. ", tables as markdown tables with a header row and a "| --- |" separator row, formulas on one line in backticks with Unicode math (\`P(A|B) = P(A ∩ B) / P(B)\`, no LaTeX). Transcribe exactly: don't summarise, explain or add anything. For handwriting, transcribe what you can read and write [illegible] for a word you can't. Leave out page numbers and running headers or footers. Empty string if the page has no text.
+- description: the page's diagrams, charts, photos or other visuals, following the figure rules below. If the page is only text, write "Scanned page of text."
+
+Figure rules: say what kind of visual it is and what it shows; transcribe its labels, numbers and equations that matter; for charts the axes and the trend or key values, for diagrams the parts and how they connect; only what is visible; plain text, 1 to 4 sentences, at most ${MAX_DESCRIPTION} characters, no markdown, no line breaks.`;
+
+export const SCAN_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    text_md: { type: "string", description: "The page's text, transcribed as markdown." },
+    description: { type: "string", description: "The page's visuals." },
+  },
+  required: ["text_md", "description"],
+} as const;
+
+/**
+ * A scanned page read by Gemini: its text as markdown (which becomes the Page's text) and a
+ * description of its visuals (the whole-page Figure's). Throws GeminiError.
+ */
+export async function transcribeScan(
+  title: string,
+  pageNumber: number,
+  image: Uint8Array,
+): Promise<{ textMd: string; description: string }> {
+  const request: JsonRequest = {
+    systemInstruction: SCAN_SYSTEM_INSTRUCTION,
+    responseSchema: SCAN_RESPONSE_SCHEMA,
+    temperature: 0.1,
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: `Document: ${title}\n\n=== Page ${pageNumber} (scanned) ===` },
+          { inlineData: { mimeType: "image/webp", data: Buffer.from(image).toString("base64") } },
+          { text: "Transcribe and describe this page following your instructions." },
+        ],
+      },
+    ],
+  };
+  // The stronger model first: reading a whole page, often handwriting, is the hard part.
+  const { response } = await generateJson(request, { models: defaultModels(), timeoutMs: SCAN_TIMEOUT_MS });
+  const r = response as { text_md?: unknown; description?: unknown } | null;
+  const text = typeof r?.text_md === "string" ? r.text_md.replace(/\r\n?/g, "\n").trim() : "";
+  return {
+    textMd: text.length > MAX_TRANSCRIPTION ? text.slice(0, MAX_TRANSCRIPTION) : text,
+    description: typeof r?.description === "string" ? cleanDescription(r.description) : "",
+  };
+}

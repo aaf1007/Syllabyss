@@ -61,6 +61,42 @@ describe("extractWithFigures", () => {
     expect(deleted).toHaveLength(1);
   });
 
+  test("a scanned page: one whole-page Figure, and the text Gemini read becomes the Page's text", async () => {
+    const { pages, figures } = await extractWithFigures(await fixture("scanned.pdf"), ALLOWED_TYPES.pdf, "Hashing", {
+      store: await tmpStore(),
+      describe: async () => {
+        throw new Error("not called");
+      },
+      transcribe: async (_title, pageNumber) => ({
+        textMd: `## Week 11: Hashing\n\nOpen addressing probes for a free slot. (page ${pageNumber})`,
+        description: "Scanned page of text.",
+      }),
+    });
+    expect(figures).toHaveLength(1);
+    expect(figures[0]).toMatchObject({ pageIndex: 0, description: "Scanned page of text." });
+    expect(pages[0]).toBe(
+      `![Scanned page of text.](figure:${figures[0].id})\n\n## Week 11: Hashing\n\nOpen addressing probes for a free slot. (page 1)`,
+    );
+    expect(pages[1]).toMatch(/A binary heap/);
+  });
+
+  test("a scan Gemini can't read keeps its Figure; a file with nothing readable fails", async () => {
+    const failing = async () => {
+      throw new Error("503");
+    };
+    const { pages } = await extractWithFigures(await fixture("scanned.pdf"), ALLOWED_TYPES.pdf, "Hashing", {
+      store: await tmpStore(),
+      transcribe: failing,
+    });
+    expect(pages[0]).toMatch(/^!\[Figure on page 1\]\(figure:[0-9a-f-]+\)$/);
+
+    // Only the scanned page: nothing at all to read
+    const store = await tmpStore();
+    await expect(
+      extractWithFigures(await fixture("scan-only.pdf"), ALLOWED_TYPES.pdf, "Hashing", { store, transcribe: failing }),
+    ).rejects.toThrow(/couldn't read this scanned file/);
+  });
+
   test("a file without images has no Figures and its text is unchanged", async () => {
     const { pages, figures } = await extractWithFigures(await fixture("deck.pptx"), ALLOWED_TYPES.pptx, "Graphs", {
       store: await tmpStore(),

@@ -1,4 +1,4 @@
-import { getDocumentProxy, getResolvedPDFJS } from "unpdf";
+import { getDocumentProxy, getResolvedPDFJS, renderPageAsImage } from "unpdf";
 import type { ImageSink } from "./markers.ts";
 
 // PDF → one markdown string per page, from the PDF's text layer (pdf.js via unpdf).
@@ -7,7 +7,8 @@ import type { ImageSink } from "./markers.ts";
 // readable, and drops headers/footers that repeat on most pages (slide numbers,
 // course names). Scanned pages have no text layer and come back as "".
 // With a sink, each embedded image becomes a Figure marker on its own line, placed by
-// the height of the image's top edge among the text lines.
+// the height of the image's top edge among the text lines, and a page with almost no text
+// (a scan) is rendered whole and handed over as a scan instead.
 
 type Item = { str: string; x: number; y: number; w: number; h: number; eol: boolean };
 type Line = { text: string; y: number; h: number };
@@ -38,7 +39,12 @@ export async function extractPdf(bytes: Uint8Array, maxPages = Infinity, sink?: 
         items.push({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, h: Math.abs(it.height || it.transform[3]), eol: it.hasEOL });
       }
       const lines = toLines(items);
-      if (sink) for (const img of await pageImages(page, OPS, sink)) placeLine(lines, { text: img.marker, y: img.top, h: 0 });
+      if (sink && isScan(lines)) {
+        const marker = await sink({ bytes: await renderPage(pdf, n) }, { scan: true });
+        if (marker) lines.unshift({ text: marker, y: Infinity, h: 0 });
+      } else if (sink) {
+        for (const img of await pageImages(page, OPS, sink)) placeLine(lines, { text: img.marker, y: img.top, h: 0 });
+      }
       pages.push(lines);
       page.cleanup();
     }
@@ -54,6 +60,23 @@ type Matrix = [number, number, number, number, number, number];
 
 /** How long to wait for pdf.js to hand over one decoded image. */
 const IMAGE_TIMEOUT_MS = 10_000;
+/** A page with fewer characters than this in its text layer is treated as a scan. */
+const SCAN_MAX_CHARS = 25;
+/** Longest side a scanned page is rendered at, for Gemini to read. */
+const SCAN_RENDER_PX = 2000;
+
+export function isScan(lines: Line[]): boolean {
+  return lines.reduce((n, l) => n + l.text.replace(/\s/g, "").length, 0) < SCAN_MAX_CHARS;
+}
+
+/** The whole page as a PNG, its longest side SCAN_RENDER_PX. */
+async function renderPage(pdf: Awaited<ReturnType<typeof getDocumentProxy>>, pageNumber: number): Promise<Uint8Array> {
+  const page = await pdf.getPage(pageNumber);
+  const { width, height } = page.getViewport({ scale: 1 });
+  const scale = SCAN_RENDER_PX / Math.max(width, height);
+  const png = await renderPageAsImage(pdf, pageNumber, { canvasImport: () => import("@napi-rs/canvas"), scale });
+  return new Uint8Array(png);
+}
 
 /**
  * The page's images, in drawing order, with the y of each one's top edge (PDF user space, like

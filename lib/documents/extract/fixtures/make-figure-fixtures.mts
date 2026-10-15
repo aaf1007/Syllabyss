@@ -3,6 +3,8 @@
 //                      and the same logo on every slide.
 //   styled-figures.docx: styled.docx plus a diagram after the first paragraph and a 16×16 icon.
 //   figures.pdf: two pages printed by headless Chrome: a diagram between two paragraphs, then an icon.
+//   scanned.pdf: a page that is only a picture of text (a scan, no text layer), then a normal page.
+//   scan-only.pdf: just that scanned page.
 // Run from the repo root: node lib/documents/extract/fixtures/make-figure-fixtures.mts
 // (figures.pdf needs Google Chrome at CHROME, default the macOS app path).
 
@@ -100,10 +102,22 @@ async function addPngType(zip: JSZip) {
 <h1>Week 9: Minimum Spanning Trees</h1><p>A minimum spanning tree connects every vertex.</p>
 <img src="${uri(diagram)}" width="400" height="300"><p>Kruskal's algorithm sorts edges by weight.</p>
 <h1 class="p">Week 10: Shortest Paths</h1><p>Dijkstra's algorithm needs non-negative weights.</p><img src="${uri(icon)}" width="16" height="16">`;
-  const tmp = mkdtempSync(path.join(tmpdir(), "figures-"));
-  writeFileSync(path.join(tmp, "f.html"), html);
-  execFileSync(CHROME, ["--headless", "--disable-gpu", "--no-pdf-header-footer", `--print-to-pdf=${path.join(dir, "figures.pdf")}`, path.join(tmp, "f.html")], {
-    stdio: "ignore",
-  });
+  const scan = await png(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1550"><rect width="1200" height="1550" fill="#fff"/>` +
+      `<text x="100" y="200" font-family="Helvetica" font-size="72">Week 11: Hashing</text>` +
+      `<text x="100" y="350" font-family="Helvetica" font-size="40">Open addressing probes for a free slot.</text></svg>`,
+  );
+  const scanned = `<!doctype html><meta charset="utf-8"><style>@page{margin:0}body{margin:0}img{display:block;width:100vw;height:100vh}.p{break-before:page;font:16px sans-serif;margin:48px}</style>
+<img src="${uri(scan)}"><div class="p"><h1>Week 12: Heaps</h1><p>A binary heap keeps its smallest key at the root.</p></div>`;
+  const print = (name: string, html: string) => {
+    const tmp = mkdtempSync(path.join(tmpdir(), "figures-"));
+    writeFileSync(path.join(tmp, "f.html"), html);
+    execFileSync(CHROME, ["--headless", "--disable-gpu", "--no-pdf-header-footer", `--print-to-pdf=${path.join(dir, name)}`, path.join(tmp, "f.html")], {
+      stdio: "ignore",
+    });
+  };
+  print("figures.pdf", html);
+  print("scanned.pdf", scanned);
+  print("scan-only.pdf", scanned.replace(/<div class="p">[\s\S]*<\/div>/, ""));
 }
-console.log("wrote deck-figures.pptx, styled-figures.docx, figures.pdf");
+console.log("wrote deck-figures.pptx, styled-figures.docx, figures.pdf, scanned.pdf, scan-only.pdf");

@@ -127,3 +127,14 @@ test("PDF Figure markers survive header/footer removal and stay their own block"
   const out = dropRepeatedLines(pages);
   assert.equal(toMarkdown(out[1]), "Topic 1\n\n⟦FIG:1⟧");
 });
+
+test("PDF: a page with no text layer is rendered whole and handed over as a scan", async () => {
+  const calls: { scan: boolean; isPng: boolean }[] = [];
+  const pages = await extractPages(await fixture("scanned.pdf"), ALLOWED_TYPES.pdf, async (img, options) => {
+    calls.push({ scan: Boolean(options?.scan), isPng: "bytes" in img && img.bytes[1] === 0x50 }); // "\x89PNG"
+    return figureMarker(calls.length - 1);
+  });
+  assert.deepEqual(calls, [{ scan: true, isPng: true }]); // the text page's images aren't asked for
+  assert.equal(pages[0], "⟦FIG:0⟧");
+  assert.match(pages[1], /A binary heap/);
+});

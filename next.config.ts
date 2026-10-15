@@ -3,8 +3,8 @@ import { clerkFrontendApi, securityHeaders } from "./lib/security/headers";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  // Node-only parsers (F03): keep them out of the bundler.
-  serverExternalPackages: ["unpdf", "mammoth"],
+  // Node-only parsers (F03) and the canvas that renders scanned PDF pages (#7): keep them out of the bundler.
+  serverExternalPackages: ["unpdf", "mammoth", "@napi-rs/canvas"],
   experimental: {
     // proxy.ts buffers request bodies and silently truncates past this (default 10 MB).
     // Uploads go up to 25 MB, plus multipart overhead.

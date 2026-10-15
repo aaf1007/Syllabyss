@@ -6,9 +6,10 @@ import type { ImageInput } from "../../figures/images.ts";
 
 /**
  * Called once per image the extractor finds, in page order. Returns the marker to place in the
- * text, or null to drop the image. Without a sink, extractors skip images.
+ * text, or null to drop the image. Without a sink, extractors skip images. `scan` marks a whole
+ * PDF page rendered because it has (almost) no text layer: Gemini transcribes it.
  */
-export type ImageSink = (image: ImageInput) => Promise<string | null>;
+export type ImageSink = (image: ImageInput, options?: { scan?: boolean }) => Promise<string | null>;
 
 export const figureMarker = (n: number) => `⟦FIG:${n}⟧`;
 export const FIGURE_MARKER = /⟦FIG:(\d+)⟧/g;

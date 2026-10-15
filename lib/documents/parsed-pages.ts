@@ -44,9 +44,7 @@ export function toParsedPages(rawPages: string[]): ParsedPage[] {
   if (rawPages.length > MAX_PAGES) throw new UserFacingError(`File has more than ${MAX_PAGES} pages`);
   const pages = rawPages.map((p) => p.replace(CONTROL_CHARS, ""));
   if (pages.every((p) => p.trim() === "")) {
-    throw new UserFacingError(
-      "No text could be read from this file. If it's a scanned PDF, export the original slides instead",
-    );
+    throw new UserFacingError("Nothing could be read from this file: it has no text or pictures");
   }
   return pages.map((contentMd, pageIndex) => ({ pageIndex, pageNumber: pageIndex + 1, contentMd: contentMd.normalize("NFC") }));
 }
