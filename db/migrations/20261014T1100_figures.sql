@@ -8,7 +8,7 @@ CREATE TABLE figures (
   object_key      text    NOT NULL UNIQUE,
   width           integer NOT NULL,
   height          integer NOT NULL,
-  sha256          text    NOT NULL,                    -- of the stored WebP
+  sha256          text    NOT NULL,                    -- of the source image, so repeats are recognised
   description     text    NOT NULL,
   UNIQUE (source_page_id, position)
 );

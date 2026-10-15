@@ -78,9 +78,24 @@ CREATE TABLE source_pages (
   source_document_id  uuid NOT NULL REFERENCES source_documents(id) ON DELETE CASCADE,
   page_index          integer NOT NULL,          -- 0-based
   page_number         integer NOT NULL,          -- page_index + 1, shown to the Player
-  content_md          text NOT NULL,
+  content_md          text NOT NULL,          -- may contain ![description](figure:<id>)
   UNIQUE (source_document_id, page_index)
 );
+
+-- Figures (ADR-0007): the image is a WebP in the Figure store (R2), the description is also in content_md.
+CREATE TABLE figures (
+  id              uuid    PRIMARY KEY,         -- set by the app; also in the object key and the placeholder
+  source_page_id  uuid    NOT NULL REFERENCES source_pages(id) ON DELETE CASCADE,
+  position        integer NOT NULL,            -- order on the Page
+  object_key      text    NOT NULL UNIQUE,
+  width           integer NOT NULL,
+  height          integer NOT NULL,
+  sha256          text    NOT NULL,            -- of the source image
+  description     text    NOT NULL,
+  UNIQUE (source_page_id, position)
+);
+-- A trigger queues each deleted Figure's object here; sweepFigureOrphans() removes them from the store.
+CREATE TABLE figure_orphans (object_key text PRIMARY KEY, queued_at timestamptz NOT NULL DEFAULT now());
 
 CREATE TABLE games (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),

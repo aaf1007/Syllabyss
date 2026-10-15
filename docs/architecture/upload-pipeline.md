@@ -1,6 +1,6 @@
 # Upload pipeline
 
-Turns an uploaded file into stored, per-page text. It runs **once per Source Document**, when the file is added to a Module. Game generation never re-parses; it reads the stored pages from Tiger Data. Parsing happens in the Next.js server with Node libraries; see ADR-0003 for why it isn't Snowflake.
+Turns an uploaded file into stored, per-page text, and its images into **Figures** (ADR-0007). It runs **once per Source Document**, when the file is added to a Module. Game generation never re-parses; it reads the stored pages from Tiger Data. Parsing happens in the Next.js server with Node libraries; see ADR-0003 for why it isn't Snowflake.
 
 ## Flow
 
@@ -16,11 +16,15 @@ Module page (drop zone)
 
 parseDocument:
   a. claim: UPDATE … SET status = 'parsing' WHERE status = 'uploaded'  (so it never runs twice)
-  b. extractPages(bytes, mimeType) → string[]  (one markdown string per page; see below)
-  c. > 100 pages, or no text on any page → fail with a readable message
+  b. extractWithFigures(bytes, mimeType, filename)  (lib/figures/pipeline.ts; see Figures below)
+       → one markdown string per page with ![description](figure:<id>) where each Figure was,
+         and the Figure rows; the WebP images are already in the Figure store
+  c. > 100 pages, or nothing readable on any page → fail with a readable message
   d. one transaction: INSERT source_pages (page_index, page_number = page_index + 1, content_md) for each page;
+                      INSERT figures (source_page_id, position, object_key, size, sha256, description);
                       UPDATE source_documents SET status = 'parsed', page_count = n
-  on any error: status = 'failed', error = <short user-facing message>; log the error (never the text) server-side
+  on any error: status = 'failed', error = <short user-facing message>; log the error (never the text) server-side;
+                remove the images stored for this file
 ```
 
 The bytes are not kept after parsing. The Module page re-fetches document status every ~3s while any file is `uploaded` or `parsing`. A `failed` file shows its error; the Player deletes it and uploads it again. There's no Retry: parsing is deterministic, so the same bytes would fail the same way.
@@ -37,9 +41,24 @@ The bytes are not kept after parsing. The Module page re-fetches document status
 | PPTX | `jszip` + the slide XML | a slide, in deck order (`presentation.xml`), not file-name order | Title → `#`; body placeholders → bullets indented by level; tables → markdown tables; speaker notes appended as `Speaker notes:`; slide numbers, dates and footers dropped. |
 | DOCX | `mammoth` (→ HTML → our markdown) | the text between explicit page breaks; with none, sections split at headings and packed up to ~3,000 characters | Heading styles → `#`–`####`; lists (nested) → `- `; tables → markdown tables. |
 
-Known limits: scanned PDFs have no text layer and fail with "No text could be read…" (no OCR). Math comes out as whatever characters the file contains. PDF tables come out as `a | b` lines rather than full markdown tables.
+Known limits: math comes out as whatever characters the file contains. PDF tables come out as `a | b` lines rather than full markdown tables.
 
 Page numbers shown to the Player are `page_index + 1` everywhere (Evidence, the reveal screen). For DOCX they're section numbers.
+
+## Figures (`lib/figures/`, ADR-0007)
+
+With an image sink (`extractPages(bytes, mimeType, sink)`), each extractor puts a marker (`⟦FIG:n⟧`, `lib/documents/extract/markers.ts`) where an image sits: PPTX pictures in shape order, DOCX images where mammoth finds them, PDF image XObjects placed among the lines by the height of their top edge. A PDF page with fewer than 25 characters in its text layer is a **scan**: it's rendered whole (`@napi-rs/canvas`, about 2000 px) and becomes one Figure.
+
+`extractWithFigures` then:
+1. converts each image to WebP (longest side 1600 px, transparency flattened onto white) and drops decorations: under 100 px on the longest side, or under 32 px on the shorter one, and formats sharp can't read (EMF/WMF);
+2. keeps the Figures (`select.ts`): a picture on more than two Pages is a logo and goes everywhere; a repeat on one Page counts once; at most 40 per file, largest first; scans always stay;
+3. asks Gemini, one call per Page with Figures (4 at a time), for a description of each (`lib/gemini/figures.ts`, the fast model first). A scanned Page gets a transcription instead, which becomes the Page's text below its Figure. A failed call keeps the Figure with "Figure on page N"; a file with nothing readable at all fails;
+4. stores the WebPs (`store.ts`: R2 when `R2_*` is set, else `FIGURES_DIR`, default `./.figures`); a failed write fails the upload;
+5. swaps each marker for `![description](figure:<id>)`. Generation, Evidence and matching read that text, so what a diagram shows can become a Prompt.
+
+The study view, the Reveal's slide panel and study notes render `figure:` images from `GET /api/figures/<id>`: the owner of the file, or anyone when a public Game uses it, gets a redirect to a signed R2 URL valid for 5 minutes (the local store streams the bytes). Study notes keep each placeholder exactly (`keepFigures` in `lib/gemini/notes.ts`).
+
+Deleting a Figure row (by cascade from a Page, Source Document, Module or Player) queues its object in `figure_orphans` through a trigger, in the same transaction. Every delete path then calls `sweepFigureOrphansLater()` in `after()`, which removes queued objects from the store.
 
 Test any file without the app: `npm run parse:check -- path/to/file.pdf [--full]`.
 

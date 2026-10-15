@@ -112,6 +112,8 @@ Your Clerk user id is in the Clerk dashboard → Users (it looks like `user_…`
 | `SONAR_MODEL` | no | The coach model. Default `claude-sonnet-5-5`; `anthropic/…` goes through the LangSmith LLM Gateway with `LANGSMITH_API_KEY` (beta); any other name is a Gemini model. Gemini is always the fallback |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | no | LangSmith tracing of every Sonar turn (`observe → coach → tools`) |
 | `EVAL_DECKS_DIR` | no | Folder of eval decks for `npm run generate:eval` |
+| `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | production only | The private R2 bucket for Figure images; production won't start without them (`bash scripts/wizard-r2.sh`). Leave them unset locally |
+| `FIGURES_DIR` | no | Where dev keeps Figure images (default `./.figures`) |
 
 ### Useful commands
 

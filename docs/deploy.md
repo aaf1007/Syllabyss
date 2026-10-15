@@ -63,6 +63,12 @@ Set these on the host (**needs human**: they're secrets). `NEXT_PUBLIC_*` values
 | `NODE_ENV` | `production` (hosts set it) | |
 | **`DEV_PLAYER_ID`** | **never set** | Dev-only auth bypass. `lib/auth.ts` honours it only when `NODE_ENV === 'development'`, but leave it unset anyway. If set under `next dev` it signs everyone in as that Player |
 | `EVAL_DECKS_DIR` | unset | Only for `npm run generate:eval` |
+| `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | the Figure bucket and its token | **Required:** the server refuses to start without all four (§ Figure storage) |
+| `FIGURES_DIR` | unset | Local-disk Figure store, for dev only |
+
+### Figure storage
+
+Images from uploaded files (Figures, ADR-0007) live in a private Cloudflare R2 bucket. Render's disk is wiped on every deploy, so production refuses to start without the four `R2_*` variables (`instrumentation.ts`). **Needs human, before the Figures change reaches `main`:** run `bash scripts/wizard-r2.sh`. It walks through creating the bucket and a token scoped to it, checks them with a real upload, and has you add the variables on Render. Keep them out of `.env.local`: without them, dev stores Figures in `./.figures`.
 
 Also in Clerk (**needs human**): add the production URL to the instance's allowed origins / redirect URLs, and turn on the sign-in methods you want (email + Google).
 
