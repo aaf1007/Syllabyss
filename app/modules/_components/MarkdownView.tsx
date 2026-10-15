@@ -54,6 +54,20 @@ function Inlines({ c, q, v = "raw" }: { c: Inline[]; q: string; v?: Variant }): 
             <Inlines c={n.c} q={q} v={v} />
           </a>
         );
+      case "figure":
+        // A Figure (ADR-0007): the route checks access and serves or redirects to the image.
+        // White behind it, like the slide it came from; the description is its alt text.
+        return (
+          // eslint-disable-next-line @next/next/no-img-element -- an authenticated API image, not an optimisable asset
+          <img
+            key={i}
+            src={`/api/figures/${n.id}`}
+            alt={n.alt}
+            title={n.alt}
+            loading="lazy"
+            className="my-2 block h-auto max-h-[480px] w-auto max-w-full rounded-[3px] bg-white"
+          />
+        );
     }
   });
 }

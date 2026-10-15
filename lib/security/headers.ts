@@ -42,7 +42,8 @@ export function contentSecurityPolicy({ clerkOrigin, dev }: { clerkOrigin: strin
       "https://clerk-telemetry.com",
       ...(dev ? ["ws:"] : []),
     ],
-    "img-src": ["'self'", "blob:", "data:", "https://img.clerk.com"],
+    // R2: /api/figures/<id> redirects to a signed URL on the bucket's host (ADR-0007).
+    "img-src": ["'self'", "blob:", "data:", "https://img.clerk.com", "https://*.r2.cloudflarestorage.com"],
     "style-src": ["'self'", "'unsafe-inline'"],
     "font-src": ["'self'", "data:"],
     "media-src": ["'self'", "blob:", "data:"],

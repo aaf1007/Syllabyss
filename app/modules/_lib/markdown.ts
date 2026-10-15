@@ -1,6 +1,6 @@
 // A tiny, safe markdown parser for the file viewer. It parses the subset the upload pipeline
 // writes (`#` headings, `- ` bullets, numbered lists, markdown tables, code fences, quotes,
-// **bold**, *italic*, `code`, links) into a plain tree that MarkdownView renders as React
+// **bold**, *italic*, `code`, links, Figures `![description](figure:<id>)`) into a plain tree that MarkdownView renders as React
 // elements. Nothing is ever injected as HTML, so text from a file can't run script or style.
 // Pure and client-safe.
 
@@ -9,7 +9,8 @@ export type Inline =
   | { t: "code"; v: string }
   | { t: "strong"; c: Inline[] }
   | { t: "em"; c: Inline[] }
-  | { t: "link"; href: string; c: Inline[] };
+  | { t: "link"; href: string; c: Inline[] }
+  | { t: "figure"; id: string; alt: string };
 
 export type ListItem = {
   depth: number;
@@ -190,8 +191,9 @@ function splitRow(line: string): string[] {
 }
 
 // `code` | **strong** | __strong__ | *em* | _em_ (not inside words, so snake_case survives) | [text](url)
+// | ![description](figure:<uuid>), a Figure the upload pipeline placed (ADR-0007)
 const INLINE =
-  /(`+)([^`]+?)\1|\*\*(.+?)\*\*|__(.+?)__|(?<![\w*])\*(?!\s)([^*]+?)\*(?![\w*])|(?<![\w_])_(?!\s)([^_]+?)_(?![\w_])|\[([^\]]+)\]\(([^)\s]+)\)/g;
+  /(`+)([^`]+?)\1|\*\*(.+?)\*\*|__(.+?)__|(?<![\w*])\*(?!\s)([^*]+?)\*(?![\w*])|(?<![\w_])_(?!\s)([^_]+?)_(?![\w_])|\[([^\]]+)\]\(([^)\s]+)\)|!\[([^\]]*)\]\(figure:([0-9a-f-]{36})\)/gi;
 
 /** Inline markdown → a flat-ish tree. Links keep only http(s) and mailto targets. */
 export function parseInline(text: string): Inline[] {
@@ -203,6 +205,7 @@ export function parseInline(text: string): Inline[] {
     if (m[2] !== undefined) out.push({ t: "code", v: m[2] });
     else if (m[3] !== undefined || m[4] !== undefined) out.push({ t: "strong", c: parseInline(m[3] ?? m[4]) });
     else if (m[5] !== undefined || m[6] !== undefined) out.push({ t: "em", c: parseInline(m[5] ?? m[6]) });
+    else if (m[10] !== undefined) out.push({ t: "figure", id: m[10].toLowerCase(), alt: m[9] });
     else if (m[7] !== undefined) {
       const href = safeHref(m[8]);
       out.push(href ? { t: "link", href, c: parseInline(m[7]) } : { t: "text", v: m[7] });
@@ -219,7 +222,7 @@ export function safeHref(href: string): string | null {
 
 /** Plain text of an inline tree (for page titles and search). */
 export function inlineText(c: Inline[]): string {
-  return c.map((n) => (n.t === "text" || n.t === "code" ? n.v : inlineText(n.c))).join("");
+  return c.map((n) => (n.t === "text" || n.t === "code" ? n.v : n.t === "figure" ? n.alt : inlineText(n.c))).join("");
 }
 
 /** A page's title for the page list: its first heading, else its first line, shortened. */

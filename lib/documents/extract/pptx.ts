@@ -1,10 +1,12 @@
 import JSZip from "jszip";
+import type { ImageSink } from "./markers.ts";
 
 // PPTX → one markdown string per slide, in presentation order.
 // Slide title → "# …", body placeholders → bullets (indented by level), other text
-// boxes → paragraphs, tables → markdown tables, speaker notes appended at the end.
+// boxes → paragraphs, tables → markdown tables, pictures → Figure markers (with a sink),
+// speaker notes appended at the end.
 
-export async function extractPptx(bytes: Uint8Array): Promise<string[]> {
+export async function extractPptx(bytes: Uint8Array, sink?: ImageSink): Promise<string[]> {
   const zip = await JSZip.loadAsync(bytes);
   const read = (path: string) => zip.file(path)?.async("string");
 
@@ -12,7 +14,7 @@ export async function extractPptx(bytes: Uint8Array): Promise<string[]> {
   const slides: string[] = [];
   for (const path of slidePaths) {
     const xml = (await read(path)) ?? "";
-    let md = slideToMarkdown(xml);
+    let md = slideToMarkdown(xml, sink ? await pictureMarkers(zip, path, xml, sink) : undefined);
     const notesPath = await relTarget(zip, path, "notesSlide");
     const notes = notesPath ? notesText((await read(notesPath)) ?? "") : "";
     if (notes) md += `${md ? "\n\n" : ""}Speaker notes:\n${notes}`;
@@ -41,20 +43,53 @@ async function slideOrder(zip: JSZip): Promise<string[]> {
     .sort((a, b) => num(a) - num(b));
 }
 
-async function relTarget(zip: JSZip, partPath: string, type: string) {
+/** Each picture's image relationship id → its marker, for the pictures the sink keeps. */
+async function pictureMarkers(zip: JSZip, slidePath: string, xml: string, sink: ImageSink) {
+  const markers = new Map<string, string>();
+  for (const m of xml.matchAll(/<p:pic\b[\s\S]*?<\/p:pic>/g)) {
+    const rId = m[0].match(/<a:blip\b[^>]*\br:embed="([^"]+)"/)?.[1];
+    if (!rId || markers.has(rId)) continue;
+    const target = await relById(zip, slidePath, rId);
+    const bytes = target && (await zip.file(target)?.async("uint8array"));
+    if (!bytes) continue; // linked from outside the file, or missing
+    const marker = await sink({ bytes });
+    if (marker) markers.set(rId, marker);
+  }
+  return markers;
+}
+
+function relsPathOf(partPath: string) {
   const dir = partPath.slice(0, partPath.lastIndexOf("/") + 1);
-  const relsPath = `${dir}_rels/${partPath.slice(dir.length)}.rels`;
+  return { dir, relsPath: `${dir}_rels/${partPath.slice(dir.length)}.rels` };
+}
+
+async function relById(zip: JSZip, partPath: string, id: string) {
+  const { dir, relsPath } = relsPathOf(partPath);
+  const rels = (await zip.file(relsPath)?.async("string")) ?? "";
+  for (const m of rels.matchAll(/<Relationship\b[^>]*>/g)) {
+    if (attr(m[0], "Id") === id && attr(m[0], "TargetMode") !== "External") return resolvePath(dir, attr(m[0], "Target") ?? "");
+  }
+}
+
+async function relTarget(zip: JSZip, partPath: string, type: string) {
+  const { dir, relsPath } = relsPathOf(partPath);
   const rels = (await zip.file(relsPath)?.async("string")) ?? "";
   for (const m of rels.matchAll(/<Relationship\b[^>]*>/g)) {
     if ((attr(m[0], "Type") ?? "").endsWith(`/${type}`)) return resolvePath(dir, attr(m[0], "Target") ?? "");
   }
 }
 
-export function slideToMarkdown(xml: string): string {
+/** `pictures` maps a picture's image relationship id to the marker to place; other pictures are skipped. */
+export function slideToMarkdown(xml: string, pictures?: Map<string, string>): string {
   const blocks: string[] = [];
-  // Top-level shapes and graphic frames (tables), in document order
-  for (const m of xml.matchAll(/<p:sp\b[\s\S]*?<\/p:sp>|<p:graphicFrame\b[\s\S]*?<\/p:graphicFrame>/g)) {
+  // Top-level shapes, pictures and graphic frames (tables), in document order
+  for (const m of xml.matchAll(/<p:sp\b[\s\S]*?<\/p:sp>|<p:pic\b[\s\S]*?<\/p:pic>|<p:graphicFrame\b[\s\S]*?<\/p:graphicFrame>/g)) {
     const shape = m[0];
+    if (shape.startsWith("<p:pic")) {
+      const marker = pictures?.get(shape.match(/<a:blip\b[^>]*\br:embed="([^"]+)"/)?.[1] ?? "");
+      if (marker) blocks.push(marker);
+      continue;
+    }
     if (shape.startsWith("<p:graphicFrame")) {
       const table = tableToMarkdown(shape);
       if (table) blocks.push(table);

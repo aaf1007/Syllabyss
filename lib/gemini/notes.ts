@@ -29,7 +29,8 @@ Rewrite it so a student can study from it:
 Rules:
 - Use ONLY what is on the page. Never add facts, explanations, examples or answers that aren't there. If a formula is too garbled to rebuild with confidence, keep the readable parts as they are.
 - Keep the page's wording; fix only obvious extraction glitches (split words, broken symbols).
-- No HTML, no images, no code fences, no "# " level-1 headings.
+- Figures: the page may contain figure placeholders like ![description](figure:<id>). Copy each one exactly as written, on its own line, where it sits among the content. Never write any other image.
+- No HTML, no code fences, no "# " level-1 headings.
 - If the page has almost no text, return what there is, tidied.`;
 
 export const NOTES_RESPONSE_SCHEMA = {
@@ -63,7 +64,27 @@ export async function writePageNotes(title: string, page: { pageNumber: number; 
     timeoutMs: NOTES_TIMEOUT_MS,
   });
   const md = (response as { notes_md?: unknown })?.notes_md;
-  return typeof md === "string" ? cleanNotes(md) : "";
+  return typeof md === "string" ? keepFigures(page.contentMd, cleanNotes(md)) : "";
+}
+
+const FIGURE = /!\[[^\]]*\]\(figure:([0-9a-f-]{36})\)/gi;
+
+/**
+ * The notes with the page's Figures exactly as the page has them (#7): a placeholder Gemini
+ * changed is restored, one it made up is removed, and one it dropped goes at the end.
+ */
+export function keepFigures(contentMd: string, notes: string): string {
+  const source = new Map([...contentMd.matchAll(FIGURE)].map((m) => [m[1].toLowerCase(), m[0]]));
+  const placed = new Set<string>();
+  let out = notes.replace(FIGURE, (_, id: string) => {
+    const original = source.get(id.toLowerCase());
+    if (!original || placed.has(id.toLowerCase())) return "";
+    placed.add(id.toLowerCase());
+    return original;
+  });
+  const missing = [...source].filter(([id]) => !placed.has(id)).map(([, p]) => p);
+  if (missing.length) out = `${out.trimEnd()}\n\n${missing.join("\n\n")}`;
+  return out.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 /** Unwraps a code fence around the whole answer and caps the length. (The viewer never renders HTML.) */

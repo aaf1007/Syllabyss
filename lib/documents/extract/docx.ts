@@ -1,17 +1,23 @@
 import mammoth from "mammoth";
+import { FIGURE_MARKER, type ImageSink } from "./markers.ts";
 
 // DOCX → markdown "pages". Word files have no fixed pages, so we split at explicit
 // page breaks when the author used them, otherwise into sections at headings,
 // packing small sections together up to SECTION_CHARS. The Player sees these as
-// page numbers, so keep them a readable size.
+// page numbers, so keep them a readable size. Images become Figure markers (with a sink).
 
 const SECTION_CHARS = 3000;
 const PAGE_BREAK = "\u27e6PAGE\u27e7"; // "⟦PAGE⟧": control characters don't survive mammoth's HTML
 
-export async function extractDocx(bytes: Uint8Array): Promise<string[]> {
+export async function extractDocx(bytes: Uint8Array, sink?: ImageSink): Promise<string[]> {
+  // The marker goes in as the <img> src; htmlToMarkdown keeps it. Without a sink, no src at all
+  // (mammoth's default inlines every image as base64).
+  const convertImage = mammoth.images.imgElement(async (image) => ({
+    src: (sink && (await sink({ bytes: new Uint8Array(await image.readAsArrayBuffer()) }))) || "",
+  }));
   const { value: html } = await mammoth.convertToHtml(
     { buffer: Buffer.from(bytes) },
-    { ignoreEmptyParagraphs: true, transformDocument: markPageBreaks },
+    { ignoreEmptyParagraphs: true, transformDocument: markPageBreaks, convertImage },
   );
   return paginate(htmlToMarkdown(html));
 }
@@ -63,11 +69,14 @@ function splitLong(section: string): string[] {
   return out;
 }
 
+// An <img> whose src is a Figure marker
+const IMG_MARKER = new RegExp(`<img\\b[^>]*\\bsrc="(${FIGURE_MARKER.source})"[^>]*>`, "g");
+
 /** Minimal HTML → markdown for mammoth's output: headings, paragraphs, lists, tables. */
 export function htmlToMarkdown(html: string): string {
   const blocks: string[] = [];
   const text = (s: string) =>
-    decode(s.replace(/<br\s*\/?>/g, " ").replace(/<[^>]+>/g, "")).replace(/[ \t]+/g, " ").trim();
+    decode(s.replace(/<br\s*\/?>/g, " ").replace(IMG_MARKER, " $1 ").replace(/<[^>]+>/g, "")).replace(/[ \t]+/g, " ").trim();
 
   const lists = (s: string, depth: number): string[] => {
     const lines: string[] = [];

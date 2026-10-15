@@ -6,6 +6,7 @@ import { ALLOWED_TYPES } from "../parsed-pages.ts";
 import { dropRepeatedLines, toLines, toMarkdown } from "./pdf.ts";
 import { slideToMarkdown } from "./pptx.ts";
 import { htmlToMarkdown, paginate } from "./docx.ts";
+import { figureMarker } from "./markers.ts";
 
 // Fixtures: lecture.pdf (2 pages, rendered by Chrome), deck.pptx (3 slides whose file
 // order differs from deck order, a table, speaker notes), styled.docx (Word heading
@@ -80,4 +81,49 @@ test("PDF: running footers and page-number lines are dropped", () => {
   const out = dropRepeatedLines(pages).map((p) => p.map((l) => l.text));
   assert.deepEqual(out[0], ["Topic A"]);
   assert.deepEqual(out[2], ["Topic C", "YOU TRY IT!"]);
+});
+
+// Figures (#7): deck-figures.pptx, styled-figures.docx and figures.pdf come from make-figure-fixtures.mts.
+/** Extracts with a sink that numbers the images it's given and drops the ones `keep` refuses. */
+async function withFigures(name: string, type: string, keep: (bytes: number) => boolean = () => true) {
+  const seen: number[] = [];
+  const pages = await extractPages(await fixture(name), type, async (img) => {
+    const size = "bytes" in img ? img.bytes.length : img.pixels.width * img.pixels.height;
+    seen.push(size);
+    return keep(size) ? figureMarker(seen.length - 1) : null;
+  });
+  return { pages, seen };
+}
+
+test("PPTX Figures: a marker per picture, where it sits on the slide", async () => {
+  const { pages, seen } = await withFigures("deck-figures.pptx", ALLOWED_TYPES.pptx);
+  assert.equal(seen.length, 4); // the logo on each of the 3 slides + the diagram
+  assert.match(pages[1], /^# Minimum Spanning Trees\n\n⟦FIG:1⟧\n\n- Kruskal/);
+  assert.ok(pages.every((p) => /⟦FIG:\d+⟧/.test(p)));
+});
+
+test("DOCX Figures: marker after the paragraph it follows; a refused image leaves nothing", async () => {
+  const { pages, seen } = await withFigures("styled-figures.docx", ALLOWED_TYPES.docx, (bytes) => bytes > 1000);
+  assert.equal(seen.length, 2);
+  assert.match(pages[0], /least total edge weight\.\n\n⟦FIG:0⟧\n\n## Algorithms/);
+  assert.doesNotMatch(pages.join("\n"), /⟦FIG:1⟧|<img/);
+});
+
+test("PDF Figures: an image lands between the lines above and below it", async () => {
+  const { pages, seen } = await withFigures("figures.pdf", ALLOWED_TYPES.pdf, (pixels) => pixels > 1000);
+  assert.deepEqual(seen, [400 * 300, 16 * 16]);
+  assert.match(pages[0], /connects every vertex\.\n\n⟦FIG:0⟧\n\nKruskal's algorithm/);
+  assert.doesNotMatch(pages[1], /⟦FIG/);
+});
+
+test("without a sink, images are skipped", async () => {
+  const pages = await extractPages(await fixture("deck-figures.pptx"), ALLOWED_TYPES.pptx);
+  assert.doesNotMatch(pages.join("\n"), /⟦FIG/);
+});
+
+test("PDF Figure markers survive header/footer removal and stay their own block", () => {
+  const marker = (n: number) => ({ text: figureMarker(n), y: 500, h: 0 });
+  const pages = [0, 1, 2, 3].map((n) => [{ text: `Topic ${n}`, y: 700, h: 12 }, marker(n)]);
+  const out = dropRepeatedLines(pages);
+  assert.equal(toMarkdown(out[1]), "Topic 1\n\n⟦FIG:1⟧");
 });

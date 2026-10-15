@@ -90,6 +90,22 @@ describe("parseInline", () => {
     expect(safeHref("javascript:alert(1)")).toBeNull();
     expect(safeHref("https://a.b")).toBe("https://a.b");
   });
+
+  it("parses a Figure placeholder; its description is its text", () => {
+    const id = "0b6f9a8e-3c1d-4e2f-9a7b-5c4d3e2f1a0b";
+    const c = parseInline(`See ![Two nodes *joined* by an edge.](figure:${id}) here`);
+    expect(c).toEqual([
+      { t: "text", v: "See " },
+      { t: "figure", id, alt: "Two nodes *joined* by an edge." },
+      { t: "text", v: " here" },
+    ]);
+    expect(inlineText(c)).toBe("See Two nodes *joined* by an edge. here");
+  });
+
+  it("only figure: placeholders become Figures; other images are never loaded", () => {
+    expect(parseInline("![x](https://evil.example/a.png)").some((n) => n.t === "figure")).toBe(false);
+    expect(parseInline("![x](figure:not-a-uuid)").some((n) => n.t === "figure")).toBe(false);
+  });
 });
 
 describe("page titles and search", () => {

@@ -4,7 +4,7 @@
 // Server only. It doesn't import "server-only" because scripts/generate-check.ts runs it
 // with plain Node; GEMINI_API_KEY has no NEXT_PUBLIC_ prefix, so it never reaches a bundle.
 
-import { ApiError, GoogleGenAI } from "@google/genai";
+import { ApiError, GoogleGenAI, type ContentListUnion } from "@google/genai";
 import { GAME_PROMPT_TEMPERATURE, GAME_RESPONSE_SCHEMA, GAME_SYSTEM_INSTRUCTION, gamePromptContents } from "./gemini/game-prompt.ts";
 import type { GenerationRequest } from "./modes/generation.ts";
 
@@ -61,22 +61,30 @@ export async function generateDocumentPrompts(
   mode: GenerationRequest = DIVE_REQUEST,
   options: GeminiCallOptions = {},
 ): Promise<GeneratedPrompts> {
+  return generateJson({ ...mode, contents: mode.contents(title, pages) }, options);
+}
+
+/** One structured-output call: any contents (text, or text and images), JSON back. */
+export type JsonRequest = Omit<GenerationRequest, "contents"> & { contents: ContentListUnion };
+
+/** Calls Gemini with `request`, retrying and falling back like generateDocumentPrompts; returns the parsed JSON unvalidated. */
+export async function generateJson(request: JsonRequest, options: GeminiCallOptions = {}): Promise<GeneratedPrompts> {
   const { ai } = config();
   const models = options.models?.length ? [...new Set(options.models)] : defaultModels();
-  const request = (model: string) =>
+  const call = (model: string) =>
     ai.models.generateContent({
       model,
-      contents: mode.contents(title, pages),
+      contents: request.contents,
       config: {
-        systemInstruction: mode.systemInstruction,
-        temperature: mode.temperature,
+        systemInstruction: request.systemInstruction,
+        temperature: request.temperature,
         responseMimeType: "application/json",
-        responseJsonSchema: mode.responseSchema,
+        responseJsonSchema: request.responseSchema,
         httpOptions: { timeout: options.timeoutMs ?? TIMEOUT_MS },
       },
     });
 
-  const { result: res, model } = await withFallback(models, request);
+  const { result: res, model } = await withFallback(models, call);
 
   const text = res.text;
   const finish = res.candidates?.[0]?.finishReason;

@@ -1,20 +1,22 @@
 import { extractDocx } from "./docx.ts";
 import { extractPdf, TooManyPagesError } from "./pdf.ts";
 import { extractPptx } from "./pptx.ts";
+import type { ImageSink } from "./markers.ts";
 import { ALLOWED_TYPES, MAX_PAGES, UserFacingError } from "../parsed-pages.ts";
 
 // Turns an uploaded file into one markdown string per page, entirely in Node
 // (ADR-0003). PDF: one per page. PPTX: one per slide. DOCX: one per page break or section.
+// With a sink, images become Figure markers in the text (./markers.ts); without one they're skipped.
 
-export async function extractPages(bytes: Uint8Array, mimeType: string): Promise<string[]> {
+export async function extractPages(bytes: Uint8Array, mimeType: string, sink?: ImageSink): Promise<string[]> {
   try {
     switch (mimeType) {
       case ALLOWED_TYPES.pdf:
-        return await extractPdf(bytes, MAX_PAGES);
+        return await extractPdf(bytes, MAX_PAGES, sink);
       case ALLOWED_TYPES.pptx:
-        return await extractPptx(bytes);
+        return await extractPptx(bytes, sink);
       case ALLOWED_TYPES.docx:
-        return await extractDocx(bytes);
+        return await extractDocx(bytes, sink);
       default:
         throw new UserFacingError("Only PDF, PPTX and DOCX files are supported");
     }

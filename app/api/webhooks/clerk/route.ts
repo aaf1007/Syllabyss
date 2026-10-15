@@ -1,6 +1,7 @@
 import { after, type NextRequest } from "next/server";
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { deletePlayerData, refreshPlayerAggregates } from "@/lib/account/delete";
+import { sweepFigureOrphansLater } from "@/lib/figures/sweep";
 
 // Clerk webhooks (#5). Signed with CLERK_WEBHOOK_SIGNING_SECRET (Clerk Dashboard → Webhooks);
 // public by design, the signature is the auth. Subscribed events: user.deleted, so a user deleted
@@ -17,6 +18,7 @@ export async function POST(req: NextRequest) {
   if (evt.type === "user.deleted" && evt.data.id) {
     await deletePlayerData(evt.data.id);
     after(() => refreshPlayerAggregates().catch((e) => console.error("[clerk-webhook] aggregate refresh failed:", e)));
+    after(sweepFigureOrphansLater);
   }
   return new Response(null, { status: 204 });
 }

@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { getApiPlayer } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { getPlayerDocument } from "@/lib/documents/queries";
+import { sweepFigureOrphansLater } from "@/lib/figures/sweep";
 
 type Ctx = { params: Promise<{ documentId: string }> };
 
@@ -30,5 +32,6 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   }
 
   await sql`delete from source_documents where id = ${document.id} and player_id = ${playerId}`;
+  after(sweepFigureOrphansLater); // its Figure images
   return new Response(null, { status: 204 });
 }

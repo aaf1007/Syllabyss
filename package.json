@@ -28,6 +28,8 @@
     "sonar:tag": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sonar-tag.mts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/s3-request-presigner": "^3.1152.0",
     "@clerk/nextjs": "^7.9.10",
     "@google/genai": "^2.27.0",
     "@langchain/anthropic": "^1.5.12",
@@ -42,6 +44,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
     "three": "^0.186.1",
     "unpdf": "^1.8.1",
     "zod": "^4.6.5"

@@ -4,6 +4,7 @@ import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { deletePlayerData, refreshPlayerAggregates } from "@/lib/account/delete";
 import { DELETE_CONFIRM_PHRASE } from "@/lib/account/confirm";
 import { getApiPlayer } from "@/lib/auth";
+import { sweepFigureOrphansLater } from "@/lib/figures/sweep";
 
 /**
  * DELETE /api/me/account `{ confirm: "delete my account" }` (#5): erases all of the Player's data,
@@ -21,6 +22,7 @@ export async function DELETE(req: Request) {
 
   await deletePlayerData(playerId);
   after(() => refreshPlayerAggregates().catch((e) => console.error("[account] aggregate refresh failed:", e)));
+  after(sweepFigureOrphansLater);
 
   try {
     await (await clerkClient()).users.deleteUser(playerId);
